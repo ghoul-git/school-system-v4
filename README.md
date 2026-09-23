@@ -13,6 +13,11 @@ To add a staff member:
 1. Supabase → Authentication → Users → **Add user** → Create new user (email + password, tick *Auto Confirm*).
 2. Supabase → SQL Editor: `insert into public.staff (email) values ('person@example.com');`
 
+## Importing from Excel
+Students, Grades and Attendance pages each have **⬇ نموذج الاستيراد** (download a CSV template) and **📥 استيراد**.
+Fill the template in Excel, save as *CSV UTF-8*, and import. Bad rows are skipped and listed with their line number;
+good rows are saved. Student imports also accept the school's own export columns (Student_ID, Student_Name, Grade, ...).
+
 ## Run locally
 ```
 npm install

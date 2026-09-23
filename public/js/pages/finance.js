@@ -166,8 +166,8 @@ async function submitPayment() {
   if (!body.amount || body.amount <= 0) return showToast('الرجاء إدخال مبلغ صحيح', 'error');
   if (!body.collected_by) return showToast('الرجاء إدخال اسم المستلم', 'error');
 
-  const res = await API.post('/payments', body);
-  if (res.success) {
+  const res = await once('addPayment', () => API.post('/payments', body));
+  if (res && res.success) {
     closeModal();
     showToast('✅ تم تسجيل الدفعة بنجاح', 'success');
     renderFinance();
@@ -177,7 +177,7 @@ async function submitPayment() {
 async function deletePayment(id) {
   if (!confirm('هل أنت متأكد من حذف هذه العملية؟')) return;
   const res = await API.delete(`/payments/${id}`);
-  if (res.success) {
+  if (res && res.success) {
     showToast('تم حذف العملية', 'error');
     renderFinance();
   }

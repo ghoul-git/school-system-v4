@@ -233,7 +233,7 @@ async function saveGradesConfig() {
     grades_config: JSON.stringify(gradesConfig)
   });
 
-  if (res.success) {
+  if (res && res.success) {
     showToast('✅ تم حفظ إعدادات الصفوف بنجاح', 'success');
     // Refresh grade dropdowns throughout the app
     window._gradesConfig = gradesConfig;
@@ -249,7 +249,7 @@ async function saveGeneralSettings() {
     seat_reservation_fee: document.getElementById('s_seat_fee').value
   };
   const res = await API.post('/settings', body);
-  if (res.success) {
+  if (res && res.success) {
     showToast('✅ تم حفظ الإعدادات', 'success');
     document.getElementById('sidebarSchoolName').textContent = body.school_name;
   }

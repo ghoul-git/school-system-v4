@@ -11,8 +11,12 @@ async function renderStudents() {
         <div class="page-heading">إدارة الطلاب</div>
         <div class="page-subheading">${students.length} طالب مسجل في النظام</div>
       </div>
-      <button class="btn btn-primary" onclick="openAddStudentModal()">+ إضافة طالب</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        ${importControls('students', 'handleStudentsImport')}
+        <button class="btn btn-primary" onclick="openAddStudentModal()">+ إضافة طالب</button>
+      </div>
     </div>
+    <div id="studentsImportResult"></div>
 
     <div class="card">
       <div class="card-body" style="padding-bottom:0">
@@ -24,7 +28,7 @@ async function renderStudents() {
           </select>
           <select class="form-control" style="width:140px" id="statusFilter" onchange="filterStudents()">
             <option value="">كل الحالات</option>
-            <option value="active">منظم</option>
+            <option value="active">منتظم</option>
             <option value="transferred">منتقل</option>
             <option value="dropped">منقطع</option>
           </select>
@@ -177,9 +181,9 @@ async function submitAddStudent() {
     address: document.getElementById('m_address').value.trim(),
     notes: document.getElementById('m_notes').value.trim()
   };
-  if (!body.full_name) return showToast('الرجاء إدخال اسم الطالب', 'error');
-  const res = await API.post('/students', body);
-  if (res.success) {
+  if (!validateStudentBody(body)) return;
+  const res = await once('addStudent', () => API.post('/students', body));
+  if (res && res.success) {
     closeModal();
     showToast(`✅ تم تسجيل الطالب بنجاح - رقمه: ${res.student_id}`, 'success');
     renderStudents();
@@ -217,7 +221,7 @@ async function openEditStudentModal(id) {
       <div class="form-group">
         <label class="form-label">الحالة</label>
         <select class="form-control" id="e_status">
-          <option value="active" ${s.status==='active'?'selected':''}>منظم</option>
+          <option value="active" ${s.status==='active'?'selected':''}>منتظم</option>
           <option value="transferred" ${s.status==='transferred'?'selected':''}>منتقل</option>
           <option value="dropped" ${s.status==='dropped'?'selected':''}>منقطع</option>
           <option value="graduated" ${s.status==='graduated'?'selected':''}>خريج</option>
@@ -249,8 +253,9 @@ async function submitEditStudent(id) {
     address: document.getElementById('e_address').value.trim(),
     notes: document.getElementById('e_notes').value.trim()
   };
-  const res = await API.put(`/students/${id}`, body);
-  if (res.success) {
+  if (!validateStudentBody(body)) return;
+  const res = await once('editStudent', () => API.put(`/students/${id}`, body));
+  if (res && res.success) {
     closeModal();
     showToast('✅ تم تحديث بيانات الطالب', 'success');
     renderStudents();
@@ -261,7 +266,7 @@ async function deleteStudent(id) {
   const name = ((window._allStudents || []).find(s => s.student_id === id) || {}).full_name || id;
   if (!confirm(`هل أنت متأكد من حذف الطالب "${name}"؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
   const res = await API.delete(`/students/${id}`);
-  if (res.success) {
+  if (res && res.success) {
     showToast('🗑 تم حذف الطالب', 'error');
     renderStudents();
   }
@@ -329,4 +334,21 @@ async function viewStudentProfile(id) {
       <button class="btn btn-outline" style="flex:1" onclick="closeModal();navigateTo('grades');setTimeout(()=>filterGradesByStudent('${s.student_id}'),300)">📝 الدرجات</button>
     </div>
   `);
+}
+
+// Check the student form before saving; shows the first problem as a message.
+function validateStudentBody(b) {
+  if (!b.full_name) { showToast('الرجاء إدخال اسم الطالب', 'error'); return false; }
+  if (!b.grade) { showToast('الرجاء اختيار الصف', 'error'); return false; }
+  if (!Number.isFinite(b.total_yearly_tuition) || b.total_yearly_tuition < 0) { showToast('القسط السنوي يجب أن يكون رقماً موجباً', 'error'); return false; }
+  if (!isValidPhone(b.parent_phone)) { showToast('رقم الهاتف يحتوي على أحرف غير مسموح بها', 'error'); return false; }
+  if (b.parent_email !== undefined && !isValidEmail(b.parent_email)) { showToast('صيغة البريد الإلكتروني غير صحيحة', 'error'); return false; }
+  return true;
+}
+
+function handleStudentsImport(event) {
+  return importCSVFile(event, '/students/import', 'studentsImportResult', 'الطلاب', () => {
+    const box = document.getElementById('studentsImportResult').innerHTML;
+    renderStudents().then(() => { const el = document.getElementById('studentsImportResult'); if (el) el.innerHTML = box; });
+  });
 }

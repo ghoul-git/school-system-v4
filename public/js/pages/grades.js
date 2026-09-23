@@ -10,7 +10,11 @@ async function renderGrades() {
         <div class="page-heading">إدارة الدرجات</div>
         <div class="page-subheading">إدخال ومتابعة درجات الطلاب</div>
       </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        ${importControls('grades', 'handleGradesImport')}
+      </div>
     </div>
+    <div id="gradesImportResult"></div>
 
     <div class="card" style="margin-bottom:20px">
       <div class="card-body">
@@ -148,15 +152,26 @@ async function openEnterGradesModal(studentId, grade) {
 
 async function submitGrades(studentId, subjectIds) {
   const semester = document.getElementById('eg_semester').value;
-  const promises = subjectIds.map(id => {
+  const payloads = [];
+  for (const id of subjectIds) {
     const input = document.getElementById(`score_${id}`);
-    if (!input || input.value === '') return null;
+    if (!input || input.value === '') continue;
     const score = parseFloat(input.value);
-    return API.post('/grades', { student_id: studentId, subject_id: id, semester, score });
-  }).filter(Boolean);
+    if (!Number.isFinite(score) || score < 0 || score > 100) return showToast('الدرجة يجب أن تكون بين 0 و 100', 'error');
+    payloads.push({ student_id: studentId, subject_id: id, semester, score });
+  }
+  if (!payloads.length) return showToast('لم يتم إدخال أي درجة', 'error');
 
-  await Promise.all(promises);
+  const results = await once('saveGrades', () => Promise.all(payloads.map(p => API.post('/grades', p))));
+  if (!results || results.some(r => !r || !r.success)) return; // error message already shown
   closeModal();
   showToast('✅ تم حفظ الدرجات بنجاح', 'success');
   loadStudentGrades(studentId);
+}
+
+function handleGradesImport(event) {
+  return importCSVFile(event, '/grades/import', 'gradesImportResult', 'الدرجات', () => {
+    const sel = document.getElementById('g_studentSelect');
+    if (sel && sel.value) loadStudentGrades(sel.value);
+  });
 }

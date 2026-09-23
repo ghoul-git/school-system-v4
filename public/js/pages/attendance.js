@@ -9,7 +9,11 @@ async function renderAttendance() {
         <div class="page-heading">الحضور والغياب</div>
         <div class="page-subheading">تسجيل ومتابعة حضور الطلاب اليومي</div>
       </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        ${importControls('attendance', 'handleAttendanceImport')}
+      </div>
     </div>
+    <div id="attendanceImportResult"></div>
 
     <div class="card" style="margin-bottom:20px">
       <div class="card-body">
@@ -118,7 +122,14 @@ async function saveAllAttendance() {
     status: sel.value
   }));
 
-  const res = await API.post('/attendance', records);
-  if (!res.success) return;
+  const res = await once('saveAttendance', () => API.post('/attendance', records));
+  if (!res || !res.success) return;
   showToast('✅ تم حفظ كشف الحضور بنجاح', 'success');
+}
+
+function handleAttendanceImport(event) {
+  return importCSVFile(event, '/attendance/import', 'attendanceImportResult', 'الحضور', () => {
+    const d = document.getElementById('att_date');
+    if (d) loadAttendanceForDate(d.value);
+  });
 }

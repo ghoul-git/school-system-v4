@@ -1,11 +1,31 @@
+// If a page fails to load, show an error message instead of a blank or stuck page.
+function safeRender(fn) {
+  return async function () {
+    try {
+      await fn();
+    } catch (err) {
+      if (err && err.message === 'Not logged in') return; // login screen already shown
+      console.error('[router] page render error:', err);
+      const el = document.getElementById('pageContent');
+      if (el) el.innerHTML = `
+        <div style="padding:40px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:8px;">تعذّر تحميل الصفحة</div>
+          <div style="color:var(--text-muted);font-size:14px;">${esc(err && err.message || 'خطأ غير معروف')}</div>
+          <button class="btn btn-outline" style="margin-top:16px" onclick="navigateTo(currentPage)">إعادة المحاولة</button>
+        </div>`;
+    }
+  };
+}
+
 const pages = {
-  dashboard: { title: 'لوحة التحكم', render: renderDashboard },
-  students: { title: 'الطلاب', render: renderStudents },
-  finance: { title: 'المالية', render: renderFinance },
-  grades: { title: 'الدرجات', render: renderGrades },
-  attendance: { title: 'الحضور والغياب', render: renderAttendance },
-  reports: { title: 'التقارير', render: renderReports },
-  settings: { title: 'الإعدادات', render: renderSettings }
+  dashboard: { title: 'لوحة التحكم', render: safeRender(renderDashboard) },
+  students: { title: 'الطلاب', render: safeRender(renderStudents) },
+  finance: { title: 'المالية', render: safeRender(renderFinance) },
+  grades: { title: 'الدرجات', render: safeRender(renderGrades) },
+  attendance: { title: 'الحضور والغياب', render: safeRender(renderAttendance) },
+  reports: { title: 'التقارير', render: safeRender(renderReports) },
+  settings: { title: 'الإعدادات', render: safeRender(renderSettings) }
 };
 
 let currentPage = 'dashboard';
