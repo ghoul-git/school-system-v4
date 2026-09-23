@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام إدارة المدرسة</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="logged-out">
+
+  <!-- Login -->
+  <div class="login-screen" id="loginScreen">
+    <form class="login-box" onsubmit="handleLogin(event)">
+      <div class="login-logo">🏫</div>
+      <h1 class="login-title">نظام إدارة المدرسة</h1>
+      <div class="form-group"><label class="form-label">البريد الإلكتروني</label>
+        <input class="form-control" id="loginEmail" type="email" autocomplete="username" required dir="ltr"></div>
+      <div class="form-group"><label class="form-label">كلمة المرور</label>
+        <input class="form-control" id="loginPassword" type="password" autocomplete="current-password" required dir="ltr"></div>
+      <div class="login-error" id="loginError"></div>
+      <button class="btn btn-primary btn-full" id="loginBtn" type="submit">تسجيل الدخول</button>
+    </form>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="school-logo">🏫</div>
+      <div class="school-info">
+        <div class="school-name" id="sidebarSchoolName">المدرسة النموذجية</div>
+        <div class="school-year">2025 / 2026</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">لوحة التحكم</span>
+      </a>
+      <a href="#" class="nav-item" data-page="students">
+        <span class="nav-icon">👨‍🎓</span>
+        <span class="nav-label">الطلاب</span>
+      </a>
+      <a href="#" class="nav-item" data-page="finance">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">المالية</span>
+      </a>
+      <a href="#" class="nav-item" data-page="grades">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">الدرجات</span>
+      </a>
+      <a href="#" class="nav-item" data-page="attendance">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">الحضور والغياب</span>
+      </a>
+      <a href="#" class="nav-item" data-page="reports">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">التقارير</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">الإعدادات</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="system-badge">نظام آمن 🔒</div>
+      <button class="btn btn-outline btn-sm btn-full" style="margin-top:8px" onclick="openChangePassword()">🔑 تغيير كلمة المرور</button>
+      <button class="btn btn-outline btn-sm btn-full" style="margin-top:6px" onclick="Auth.logout()">🚪 تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="top-bar">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="page-title" id="pageTitle">لوحة التحكم</div>
+      <div class="top-bar-actions">
+        <div class="current-date" id="currentDate"></div>
+      </div>
+    </header>
+
+    <div class="page-content" id="pageContent">
+      <!-- Pages load here -->
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle"></span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/pages/dashboard.js"></script>
+  <script src="/js/pages/students.js"></script>
+  <script src="/js/pages/finance.js"></script>
+  <script src="/js/pages/grades.js"></script>
+  <script src="/js/pages/attendance.js"></script>
+  <script src="/js/pages/reports.js"></script>
+  <script src="/js/pages/settings.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

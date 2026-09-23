@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+.vercel/
+*.db
+*.db-wal
+*.db-shm
+# Real student data never goes into git
+data/
+_legacy/
