@@ -5,102 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام إدارة المدرسة</title>
   <link rel="stylesheet" href="/css/main.css">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body class="logged-out">
+  <a class="skip-link" href="#pageContent">تخطَّ إلى المحتوى</a>
 
   <!-- Login -->
   <div class="login-screen" id="loginScreen">
-    <form class="login-box" onsubmit="handleLogin(event)">
-      <div class="login-logo">🏫</div>
-      <h1 class="login-title">نظام إدارة المدرسة</h1>
-      <div class="form-group"><label class="form-label">البريد الإلكتروني</label>
-        <input class="form-control" id="loginEmail" type="email" autocomplete="username" required dir="ltr"></div>
-      <div class="form-group"><label class="form-label">كلمة المرور</label>
-        <input class="form-control" id="loginPassword" type="password" autocomplete="current-password" required dir="ltr"></div>
-      <div class="login-error" id="loginError"></div>
-      <button class="btn btn-primary btn-full" id="loginBtn" type="submit">تسجيل الدخول</button>
-    </form>
+    <main class="login-box">
+      <form onsubmit="handleLogin(event)" aria-labelledby="loginTitle">
+        <div class="login-logo" aria-hidden="true">🏫</div>
+        <h1 class="login-title" id="loginTitle">نظام إدارة المدرسة</h1>
+        <div class="form-group"><label class="form-label" for="loginEmail">البريد الإلكتروني</label>
+          <input class="form-control" id="loginEmail" type="email" autocomplete="username" required dir="ltr"></div>
+        <div class="form-group"><label class="form-label" for="loginPassword">كلمة المرور</label>
+          <input class="form-control" id="loginPassword" type="password" autocomplete="current-password" required dir="ltr"></div>
+        <div class="login-error" id="loginError" role="alert" aria-live="assertive"></div>
+        <button class="btn btn-primary btn-full" id="loginBtn" type="submit">تسجيل الدخول</button>
+      </form>
+      <nav class="legal-links" aria-label="الصفحات القانونية">
+        <a href="/legal/privacy.html">الخصوصية</a>
+        <a href="/legal/terms.html">شروط الخدمة</a>
+        <a href="/legal/cookies.html">ملفات الارتباط</a>
+        <a href="/legal/about.html">معلومات الشركة</a>
+      </nav>
+      <p class="login-company" id="loginCompany"></p>
+    </main>
   </div>
 
   <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" aria-label="القائمة الرئيسية">
     <div class="sidebar-header">
-      <div class="school-logo">🏫</div>
+      <div class="school-logo" aria-hidden="true">🏫</div>
       <div class="school-info">
         <div class="school-name" id="sidebarSchoolName">المدرسة النموذجية</div>
         <div class="school-year">2025 / 2026</div>
       </div>
     </div>
 
-    <nav class="sidebar-nav">
-      <a href="#" class="nav-item active" data-page="dashboard">
-        <span class="nav-icon">📊</span>
+    <nav class="sidebar-nav" aria-label="صفحات النظام">
+      <a href="#" class="nav-item active" data-page="dashboard" aria-current="page">
+        <span class="nav-icon" aria-hidden="true">📊</span>
         <span class="nav-label">لوحة التحكم</span>
       </a>
       <a href="#" class="nav-item" data-page="students">
-        <span class="nav-icon">👨‍🎓</span>
+        <span class="nav-icon" aria-hidden="true">👨‍🎓</span>
         <span class="nav-label">الطلاب</span>
       </a>
       <a href="#" class="nav-item" data-page="finance">
-        <span class="nav-icon">💰</span>
+        <span class="nav-icon" aria-hidden="true">💰</span>
         <span class="nav-label">المالية</span>
       </a>
       <a href="#" class="nav-item" data-page="grades">
-        <span class="nav-icon">📝</span>
+        <span class="nav-icon" aria-hidden="true">📝</span>
         <span class="nav-label">الدرجات</span>
       </a>
       <a href="#" class="nav-item" data-page="attendance">
-        <span class="nav-icon">📅</span>
+        <span class="nav-icon" aria-hidden="true">📅</span>
         <span class="nav-label">الحضور والغياب</span>
       </a>
       <a href="#" class="nav-item" data-page="reports">
-        <span class="nav-icon">📋</span>
+        <span class="nav-icon" aria-hidden="true">📋</span>
         <span class="nav-label">التقارير</span>
       </a>
       <a href="#" class="nav-item" data-page="settings">
-        <span class="nav-icon">⚙️</span>
+        <span class="nav-icon" aria-hidden="true">⚙️</span>
         <span class="nav-label">الإعدادات</span>
       </a>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="system-badge">نظام آمن 🔒</div>
-      <button class="btn btn-outline btn-sm btn-full" style="margin-top:8px" onclick="openChangePassword()">🔑 تغيير كلمة المرور</button>
-      <button class="btn btn-outline btn-sm btn-full" style="margin-top:6px" onclick="Auth.logout()">🚪 تسجيل الخروج</button>
+      <div class="system-badge">الاتصال مشفّر (HTTPS)</div>
+      <button class="btn btn-outline btn-sm btn-full" style="margin-top:8px" onclick="openChangePassword()"><span aria-hidden="true">🔑</span> تغيير كلمة المرور</button>
+      <button class="btn btn-outline btn-sm btn-full" style="margin-top:6px" onclick="Auth.logout()"><span aria-hidden="true">🚪</span> تسجيل الخروج</button>
+      <nav class="sidebar-legal" aria-label="الصفحات القانونية">
+        <a href="/legal/privacy.html" target="_blank" rel="noopener">الخصوصية</a> ·
+        <a href="/legal/terms.html" target="_blank" rel="noopener">الشروط</a> ·
+        <a href="/legal/about.html" target="_blank" rel="noopener">الشركة</a>
+      </nav>
     </div>
   </aside>
 
   <!-- Main Content -->
-  <main class="main-content">
+  <div class="main-content">
     <header class="top-bar">
-      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-      <div class="page-title" id="pageTitle">لوحة التحكم</div>
+      <button class="menu-toggle" onclick="toggleSidebar()" aria-label="فتح القائمة" aria-controls="sidebar">☰</button>
+      <h1 class="page-title" id="pageTitle">لوحة التحكم</h1>
       <div class="top-bar-actions">
         <div class="current-date" id="currentDate"></div>
       </div>
     </header>
 
-    <div class="page-content" id="pageContent">
+    <main class="page-content" id="pageContent" tabindex="-1">
       <!-- Pages load here -->
-    </div>
-  </main>
+    </main>
+  </div>
 
   <!-- Modal -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
-    <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span class="modal-title" id="modalTitle"></span>
-        <button class="modal-close" onclick="closeModal()">✕</button>
+        <h2 class="modal-title" id="modalTitle"></h2>
+        <button class="modal-close" onclick="closeModal()" aria-label="إغلاق">✕</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <!-- Cookie notice (only strictly necessary storage is used) -->
+  <div class="cookie-banner" id="cookieBanner" role="region" aria-label="تنبيه ملفات تعريف الارتباط" hidden>
+    <p>يستخدم هذا النظام تخزيناً ضرورياً فقط لإبقائك مسجّلاً للدخول. لا نستخدم أي ملفات تتبّع أو إعلانات.
+      <a href="/legal/cookies.html" target="_blank" rel="noopener">التفاصيل</a></p>
+    <button class="btn btn-primary btn-sm" onclick="ackCookies()">فهمت</button>
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/vendor/supabase.js"></script>
+  <script src="/js/business.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/pages/dashboard.js"></script>
   <script src="/js/pages/students.js"></script>

@@ -173,6 +173,10 @@ function studentFields(body, { partial = false } = {}) {
   if (!partial || has('gender')) out.gender = body.gender === 'female' ? 'female' : 'male';
   if (!partial || has('total_yearly_tuition')) out.total_yearly_tuition = safeNum(body.total_yearly_tuition, 'القسط السنوي', { min: 0, max: 1000000 }) ?? 500;
   if (!partial || has('notes')) out.notes = safeStr(body.notes, 'الملاحظات', { maxLen: 1000 });
+  // Guardian consent (PDPL Art. 5 — minors need a parent/guardian's documented consent)
+  if (!partial || has('guardian_consent_at')) out.guardian_consent_at = safeDate(body.guardian_consent_at, 'تاريخ موافقة ولي الأمر');
+  if (!partial || has('guardian_consent_by')) out.guardian_consent_by = safeStr(body.guardian_consent_by, 'اسم ولي الأمر الموافق', { maxLen: 200 }) || null;
+  if (out.guardian_consent_at && !out.guardian_consent_by && !partial) throw new ValidationError('يرجى إدخال اسم ولي الأمر الذي وقّع الموافقة');
   if (has('status')) out.status = studentStatus(body.status);
   return out;
 }
@@ -261,6 +265,48 @@ app.post('/api/students/import', h(async (req, res) => {
   if (withoutId.length) ok(await req.db.from('students').insert(withoutId));
   errors.sort((a, b) => a.row - b.row);
   res.json({ success: true, imported: toInsert.length, skipped: errors.length, errors });
+}));
+
+// Parent's right of access / portability: everything we hold about one student, as a file.
+app.get('/api/students/:id/export', h(async (req, res) => {
+  const id = req.params.id;
+  const student = ok(await req.db.from('students').select('*').eq('student_id', id).maybeSingle());
+  if (!student) return res.status(404).json({ error: 'الطالب غير موجود' });
+  const [payments, grades, attendance] = await Promise.all([
+    fetchAll(() => req.db.from('payments').select('*').eq('student_id', id).order('id')),
+    fetchAll(() => req.db.from('grades').select('*, subjects(name)').eq('student_id', id).order('id')),
+    fetchAll(() => req.db.from('attendance').select('*').eq('student_id', id).order('id'))
+  ]);
+  ok(await req.db.from('data_requests').insert({
+    request_type: 'export', student_id: id,
+    requested_by: safeStr(req.query.requested_by, 'مقدّم الطلب', { maxLen: 200 }) || null
+  }));
+  res.setHeader('Content-Disposition', `attachment; filename="student-${id}-data-${today()}.json"`);
+  res.json({ exported_at: new Date().toISOString(), student, payments, grades, attendance });
+}));
+
+// Parent's right to erasure: permanently deletes the student and all linked records (logged).
+app.post('/api/students/:id/erase', h(async (req, res) => {
+  const id = req.params.id;
+  if (String(req.body.confirm ?? '').trim() !== id) throw new ValidationError('للتأكيد اكتب رقم الطالب كما هو');
+  const requested_by = safeStr(req.body.requested_by, 'اسم مقدّم الطلب', { required: true, maxLen: 200 });
+  const note = safeStr(req.body.note, 'الملاحظات', { maxLen: 500 });
+  const removed = ok(await req.db.rpc('erase_student', { p_student_id: id, p_requested_by: requested_by, p_note: note }));
+  res.json({ success: true, removed });
+}));
+
+// ─── TERMS ACCEPTANCE (staff) ────────────────────────────────
+app.get('/api/terms/status', h(async (req, res) => {
+  const version = safeStr(req.query.version, 'الإصدار', { required: true, maxLen: 50 });
+  const rows = ok(await req.db.from('terms_acceptances').select('accepted_at').eq('version', version).limit(1));
+  res.json({ accepted: rows.length > 0, accepted_at: rows[0]?.accepted_at ?? null });
+}));
+
+app.post('/api/terms/accept', h(async (req, res) => {
+  const version = safeStr(req.body.version, 'الإصدار', { required: true, maxLen: 50 });
+  if (req.body.agreed !== true) throw new ValidationError('يجب الموافقة على الشروط وسياسة الخصوصية للمتابعة');
+  ok(await req.db.from('terms_acceptances').upsert({ version }, { onConflict: 'user_email,version', ignoreDuplicates: true }));
+  res.json({ success: true });
 }));
 
 // ─── PAYMENTS ────────────────────────────────────────────────
@@ -452,7 +498,7 @@ app.get('/api/dashboard', h(async (req, res) => {
 // ─── BACKUP ──────────────────────────────────────────────────
 // Full export of every table as one JSON file (Settings → download backup).
 app.get('/api/backup', h(async (req, res) => {
-  const tables = ['students', 'payments', 'subjects', 'grades', 'attendance', 'academic_plan', 'settings'];
+  const tables = ['students', 'payments', 'subjects', 'grades', 'attendance', 'academic_plan', 'settings', 'data_requests', 'terms_acceptances'];
   const data = {};
   for (const t of tables) data[t] = await fetchAll(() => req.db.from(t).select('*').order(t === 'settings' ? 'key' : 'id'));
   const stamp = today();
@@ -476,6 +522,7 @@ app.use((err, req, res, next) => {
       ? 'لا يمكن الحذف: هذا الطالب لديه مدفوعات أو درجات أو حضور مسجّل. غيّر حالته إلى منتقل أو منقطع بدلاً من الحذف.'
       : 'الطالب أو المادة غير موجود' });
   }
+  if (code === 'P0002') return res.status(404).json({ error: 'الطالب غير موجود' });
   if (code === '23505') return res.status(409).json({ error: 'السجل موجود مسبقاً' });
   if (code === '23514' || code === '22P02') return res.status(400).json({ error: 'قيمة غير صالحة: ' + msg });
   console.error(err);

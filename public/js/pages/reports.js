@@ -9,27 +9,27 @@ async function renderReports() {
     </div>
 
     <div class="grid-3" style="margin-bottom:24px">
-      <div class="card" style="cursor:pointer" onclick="generateDebtorsReport()">
+      <button type="button" class="card card-button" onclick="generateDebtorsReport()">
         <div class="card-body" style="text-align:center;padding:30px">
-          <div style="font-size:40px;margin-bottom:12px">💸</div>
+          <div style="font-size:40px;margin-bottom:12px" aria-hidden="true">💸</div>
           <div style="font-weight:700;font-size:16px">تقرير المديونيات</div>
           <div style="color:var(--text-muted);font-size:13px;margin-top:6px">قائمة الطلاب ذوي الذمم المالية</div>
         </div>
-      </div>
-      <div class="card" style="cursor:pointer" onclick="generatePaymentsReport()">
+      </button>
+      <button type="button" class="card card-button" onclick="generatePaymentsReport()">
         <div class="card-body" style="text-align:center;padding:30px">
-          <div style="font-size:40px;margin-bottom:12px">📊</div>
+          <div style="font-size:40px;margin-bottom:12px" aria-hidden="true">📊</div>
           <div style="font-weight:700;font-size:16px">تقرير الإيرادات الشهري</div>
           <div style="color:var(--text-muted);font-size:13px;margin-top:6px">ملخص المدفوعات لهذا الشهر</div>
         </div>
-      </div>
-      <div class="card" style="cursor:pointer" onclick="openStudentReportModal()">
+      </button>
+      <button type="button" class="card card-button" onclick="openStudentReportModal()">
         <div class="card-body" style="text-align:center;padding:30px">
-          <div style="font-size:40px;margin-bottom:12px">📋</div>
+          <div style="font-size:40px;margin-bottom:12px" aria-hidden="true">📋</div>
           <div style="font-weight:700;font-size:16px">كشف حساب طالب</div>
           <div style="color:var(--text-muted);font-size:13px;margin-top:6px">تقرير مالي وأكاديمي لطالب محدد</div>
         </div>
-      </div>
+      </button>
     </div>
 
     <div id="reportOutput"></div>
@@ -58,6 +58,7 @@ async function generateDebtorsReport() {
       </div>
       <div id="printable">
         <div class="card-body">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">مستند داخلي للمدرسة — ليس فاتورة ضريبية.</p>
           <div class="alert alert-red" style="margin-bottom:16px">
             إجمالي الذمم المالية غير المسددة: <strong>${total.toFixed(2)} د.أ</strong> — ${results.length} طالب
           </div>
@@ -106,6 +107,7 @@ async function generatePaymentsReport() {
       </div>
       <div id="printable">
         <div class="card-body">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">مستند داخلي للمدرسة — ليس فاتورة ضريبية.</p>
           <div class="summary-box" style="margin-bottom:20px">
             <div class="summary-item"><div class="summary-value" style="color:var(--success)">${total.toFixed(2)}</div><div class="summary-label">إجمالي الشهر (د.أ)</div></div>
             <div class="summary-item"><div class="summary-value">${monthPayments.length}</div><div class="summary-label">عدد العمليات</div></div>
@@ -176,6 +178,7 @@ async function generateStudentReport(studentId) {
       </div>
       <div id="printable">
         <div class="card-body">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">مستند داخلي للمدرسة — ليس فاتورة ضريبية.</p>
           <div class="profile-info-grid" style="margin-bottom:20px">
             <div class="profile-info-item"><div class="profile-info-label">رقم الطالب</div><div class="profile-info-value">${s.student_id}</div></div>
             <div class="profile-info-item"><div class="profile-info-label">الصف</div><div class="profile-info-value">${esc(s.grade)}</div></div>
@@ -209,7 +212,7 @@ function printReport() {
     <html dir="rtl"><head>
       <meta charset="UTF-8">
       <title>تقرير</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+      <link href="/css/fonts.css" rel="stylesheet">
       <style>
         body { font-family: 'Cairo', sans-serif; padding: 20px; direction: rtl; }
         table { width:100%; border-collapse:collapse; }

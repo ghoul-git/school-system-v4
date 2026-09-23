@@ -34,6 +34,12 @@ async function renderDashboard() {
       </div>
     </div>
 
+    ${data.missingConsent ? `
+    <div class="alert alert-yellow" role="status" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <span>⚠️ ${data.missingConsent} طالب بدون موافقة ولي أمر مسجّلة. القانون يشترط موافقة موثّقة لبيانات القاصرين.</span>
+      <a class="btn btn-outline btn-sm" href="/legal/parent-consent.html" target="_blank" rel="noopener">نموذج الموافقة</a>
+    </div>` : ''}
+
     <div class="grid-2">
       <div class="card">
         <div class="card-header">

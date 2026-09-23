@@ -67,14 +67,107 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
-function openModal(title, bodyHtml) {
+// ─── Modal with keyboard support: focus moves in, Tab stays inside, Esc closes, focus returns ───
+let _modalReturnFocus = null;
+let _modalLocked = false; // true for dialogs that must be answered (e.g. accepting the terms)
+function openModal(title, bodyHtml, { locked = false } = {}) {
+  const overlay = document.getElementById('modalOverlay');
+  if (!overlay.classList.contains('open')) _modalReturnFocus = document.activeElement;
+  _modalLocked = locked;
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').innerHTML = bodyHtml;
-  document.getElementById('modalOverlay').classList.add('open');
+  document.querySelector('.modal-close').hidden = locked;
+  overlay.classList.add('open');
+  enhanceA11y(overlay);
+  const first = overlay.querySelector('#modalBody input:not([type=hidden]), #modalBody select, #modalBody textarea, #modalBody button, #modalBody a[href]');
+  (first || overlay.querySelector('.modal-box')).focus?.();
 }
 
-function closeModal() {
+function closeModal(force = false) {
+  if (_modalLocked && !force) return;
+  _modalLocked = false;
   document.getElementById('modalOverlay').classList.remove('open');
+  if (_modalReturnFocus && document.contains(_modalReturnFocus)) _modalReturnFocus.focus();
+  _modalReturnFocus = null;
+}
+
+document.addEventListener('keydown', e => {
+  const overlay = document.getElementById('modalOverlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (e.key === 'Escape') { closeModal(); return; }
+  if (e.key !== 'Tab') return;
+  const items = [...overlay.querySelectorAll('a[href], button:not([disabled]):not([hidden]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex="0"]')]
+    .filter(el => el.offsetParent !== null);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+// ─── Accessibility pass over freshly rendered HTML ───
+// Links each label to its field, names icon-only buttons for screen readers,
+// and makes any remaining clickable non-button elements usable from the keyboard.
+const ICON_LABELS = { '🗑': 'حذف', '✏️': 'تعديل', '👁': 'عرض الملف', '✕': 'إغلاق', '☰': 'القائمة', '🖨': 'طباعة' };
+let _a11yId = 0;
+function enhanceA11y(root) {
+  if (!root) return;
+  root.querySelectorAll('.form-group').forEach(g => {
+    const label = g.querySelector(':scope > label');
+    const field = g.querySelector(':scope > input, :scope > select, :scope > textarea');
+    if (label && field && !label.htmlFor) {
+      if (!field.id) field.id = 'fld_' + (++_a11yId);
+      label.htmlFor = field.id;
+    }
+  });
+  // Fields with no visible label (filters, search boxes) still need an accessible name.
+  const NAMES = { gradeFilter: 'تصفية حسب الصف', statusFilter: 'تصفية حسب الحالة', monthFilter: 'الشهر', financeSearch: 'بحث باسم الطالب',
+    studentSearch: 'بحث بالاسم أو رقم الطالب', g_studentSelect: 'اختر الطالب', g_semesterFilter: 'الفصل الدراسي', att_date: 'تاريخ الحضور', att_grade: 'الصف' };
+  root.querySelectorAll('input, select, textarea').forEach(f => {
+    if (f.type === 'hidden' || f.getAttribute('aria-label') || f.getAttribute('aria-labelledby')) return;
+    if (f.id && root.querySelector(`label[for="${CSS.escape(f.id)}"]`)) return;
+    if (f.closest('label')) return;
+    const name = NAMES[f.id] || (f.placeholder || '').replace(/^🔍\s*/, '') || (f.tagName === 'SELECT' && f.options[0] ? f.options[0].textContent.replace(/[-—]/g, '').trim() : '');
+    if (name) f.setAttribute('aria-label', name);
+  });
+  root.querySelectorAll('button').forEach(b => {
+    const text = b.textContent.trim();
+    if (!b.getAttribute('aria-label') && ICON_LABELS[text]) b.setAttribute('aria-label', ICON_LABELS[text]);
+  });
+  root.querySelectorAll('[onclick]:not(button):not(a):not(input):not(select):not(.modal-overlay):not(.modal-box)').forEach(el => {
+    if (el.getAttribute('role')) return;
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
+  });
+}
+
+// Download a file from the API (adds the login token).
+async function downloadFile(path, filename) {
+  const res = await fetch(`/api${path}`, { headers: { Authorization: `Bearer ${await Auth.token()}` } });
+  if (!res.ok) {
+    let msg = 'تعذّر تنزيل الملف';
+    try { msg = (await res.json()).error || msg; } catch {}
+    showToast(msg, 'error');
+    return false;
+  }
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  return true;
+}
+
+// ─── Cookie notice: only strictly-necessary storage is used, so this is information, not a choice ───
+function showCookieNotice() {
+  let seen = false;
+  try { seen = localStorage.getItem('cookie_notice_ack') === '1'; } catch {}
+  if (!seen) document.getElementById('cookieBanner').hidden = false;
+}
+function ackCookies() {
+  try { localStorage.setItem('cookie_notice_ack', '1'); } catch {}
+  document.getElementById('cookieBanner').hidden = true;
 }
 
 function formatDate(d) {

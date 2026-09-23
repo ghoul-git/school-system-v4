@@ -133,7 +133,7 @@ async function renderSettings() {
           <div class="profile-info-item"><div class="profile-info-label">العنوان</div><div class="profile-info-value">${location.host}</div></div>
         </div>
         <div class="alert alert-blue" style="margin-top:16px">
-          🔒 البيانات محفوظة في قاعدة بيانات سحابية آمنة، ولا يمكن الوصول إليها إلا بعد تسجيل الدخول.
+          🔒 البيانات محفوظة في مركز بيانات في فرانكفورت (الاتحاد الأوروبي)، والاتصال مشفّر، ولا يمكن الوصول إليها إلا بعد تسجيل الدخول.
         </div>
       </div>
     </div>
@@ -288,17 +288,7 @@ async function downloadBackup() {
   const btn = document.getElementById('backupBtn');
   btn.disabled = true;
   try {
-    const res = await fetch('/api/backup', { headers: { Authorization: `Bearer ${await Auth.token()}` } });
-    if (!res.ok) throw new Error('فشل تنزيل النسخة الاحتياطية');
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `school-backup-${todayLocal()}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-    showToast('✅ تم تنزيل النسخة الاحتياطية', 'success');
-  } catch (e) {
-    showToast(e.message, 'error');
+    if (await downloadFile('/backup', `school-backup-${todayLocal()}.json`)) showToast('✅ تم تنزيل النسخة الاحتياطية', 'success');
   } finally {
     btn.disabled = false;
   }

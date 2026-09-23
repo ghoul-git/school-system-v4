@@ -36,12 +36,14 @@ function navigateTo(page) {
 
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
+    if (el.dataset.page === page) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
   });
+  document.title = `${pages[page].title} — نظام إدارة المدرسة`;
 
   document.getElementById('pageTitle').textContent = pages[page].title;
   document.getElementById('pageContent').innerHTML = '<div class="loading"><div class="spinner"></div> جاري التحميل...</div>';
 
-  pages[page].render();
+  Promise.resolve(pages[page].render()).then(() => enhanceA11y(document.getElementById('pageContent')));
 }
 
 function toggleSidebar() {
@@ -53,6 +55,7 @@ document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', e => {
     e.preventDefault();
     navigateTo(el.dataset.page);
+    document.getElementById('pageContent').focus({ preventScroll: true });
     if (window.innerWidth <= 768) {
       document.getElementById('sidebar').classList.remove('open');
     }
@@ -112,13 +115,49 @@ async function submitChangePassword() {
 }
 
 let appStarted = false;
-function startApp() {
+async function startApp() {
   if (appStarted) return navigateTo(currentPage);
   appStarted = true;
   updateDate();
   loadSchoolName();
   navigateTo('dashboard');
+  await ensureTermsAccepted();
 }
+
+// Each staff member must accept the current Terms + Privacy Policy once (recorded with date and version).
+async function ensureTermsAccepted() {
+  const version = (window.BUSINESS || {}).termsVersion || 'v1';
+  const st = await API.get(`/terms/status?version=${encodeURIComponent(version)}`);
+  if (!st || st.accepted) return;
+  openModal('الموافقة على الشروط وسياسة الخصوصية', `
+    <p style="margin-bottom:12px">قبل استخدام النظام، يرجى قراءة المستندات التالية:</p>
+    <ul style="margin:0 20px 14px 0;line-height:2">
+      <li><a href="/legal/terms.html" target="_blank" rel="noopener">شروط الخدمة</a></li>
+      <li><a href="/legal/privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a></li>
+    </ul>
+    <div class="check-row" style="margin-bottom:16px">
+      <input type="checkbox" id="termsAgree" onchange="document.getElementById('termsAcceptBtn').disabled = !this.checked">
+      <label for="termsAgree">قرأت شروط الخدمة وسياسة الخصوصية وأوافق عليها، وأتعهّد بعدم إدخال بيانات أي طالب قبل الحصول على موافقة ولي أمره.</label>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="termsAcceptBtn" disabled onclick="acceptTerms('${version}')">متابعة</button>
+      <button class="btn btn-outline" onclick="Auth.logout()">لا أوافق — تسجيل الخروج</button>
+    </div>`, { locked: true });
+}
+
+async function acceptTerms(version) {
+  if (!document.getElementById('termsAgree').checked) return;
+  const res = await once('terms', () => API.post('/terms/accept', { version, agreed: true }));
+  if (res && res.success) { closeModal(true); showToast('✅ شكراً، تم تسجيل موافقتك', 'success'); }
+}
+
+// Company line on the login screen (from business.js)
+(function () {
+  const B = window.BUSINESS || {};
+  const el = document.getElementById('loginCompany');
+  if (el) el.textContent = B.companyName ? `© ${new Date().getFullYear()} ${B.companyName}` : '';
+})();
+showCookieNotice();
 
 // Init
 (async () => {

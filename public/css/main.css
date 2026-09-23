@@ -1,3 +1,13 @@
+/* Self-hosted Cairo font (SIL OFL 1.1) — no requests to Google */
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 400; font-display: swap; src: url('/vendor/fonts/cairo-arabic-400-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFC, U+200C-200E, U+2010-2011; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 400; font-display: swap; src: url('/vendor/fonts/cairo-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 600; font-display: swap; src: url('/vendor/fonts/cairo-arabic-600-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFC, U+200C-200E, U+2010-2011; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 600; font-display: swap; src: url('/vendor/fonts/cairo-latin-600-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 700; font-display: swap; src: url('/vendor/fonts/cairo-arabic-700-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFC, U+200C-200E, U+2010-2011; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 700; font-display: swap; src: url('/vendor/fonts/cairo-latin-700-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 900; font-display: swap; src: url('/vendor/fonts/cairo-arabic-900-normal.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFC, U+200C-200E, U+2010-2011; }
+@font-face { font-family: 'Cairo'; font-style: normal; font-weight: 900; font-display: swap; src: url('/vendor/fonts/cairo-latin-900-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212; }
+
 /* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -11,16 +21,16 @@
   --primary: #1e40af;
   --primary-light: #dbeafe;
   --primary-dark: #1e3a8a;
-  --accent: #0ea5e9;
-  --success: #16a34a;
+  --accent: #0369a1;
+  --success: #15803d;
   --success-light: #dcfce7;
-  --danger: #dc2626;
+  --danger: #b91c1c;
   --danger-light: #fee2e2;
-  --warning: #d97706;
+  --warning: #b45309;
   --warning-light: #fef3c7;
   --text: #1e293b;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --text-muted: #475569;
+  --text-light: #64748b;
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
@@ -749,3 +759,33 @@ body.logged-out .sidebar, body.logged-out .main-content { display: none; }
 .login-error { color: #dc2626; min-height: 20px; font-size: 14px; margin-bottom: 8px; }
 .sidebar-footer .btn-outline { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.25); background: transparent; }
 .sidebar-footer .btn-outline:hover { color: #fff; border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); }
+
+/* ─── Accessibility ─── */
+h1.page-title, h2.modal-title { margin: 0; }
+.skip-link { position: fixed; right: 12px; top: -60px; z-index: 3000; background: var(--primary-dark); color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 700; text-decoration: none; transition: top .15s; }
+.skip-link:focus { top: 12px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible,
+[tabindex]:focus-visible, .nav-item:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.sidebar .nav-item:focus-visible { outline-color: #fbbf24; outline-offset: -3px; }
+.school-year { color: rgba(255,255,255,0.8) !important; }
+.system-badge { color: rgba(255,255,255,0.85) !important; }
+.card-button { display: block; width: 100%; text-align: inherit; font: inherit; color: inherit; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ─── Legal links & cookie notice ─── */
+.legal-links { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 18px; font-size: 13px; }
+.legal-links a { color: var(--primary); }
+.login-company { text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+.sidebar-legal { margin-top: 10px; text-align: center; font-size: 12px; color: rgba(255,255,255,0.8); }
+.sidebar-legal a { color: #fff; }
+.cookie-banner { position: fixed; bottom: 16px; left: 16px; right: 16px; max-width: 640px; margin: 0 auto; z-index: 2500; background: #1e293b; color: #fff; border-radius: 12px; padding: 14px 18px; display: flex; gap: 14px; align-items: center; box-shadow: var(--shadow-lg); }
+.cookie-banner[hidden] { display: none; }
+.cookie-banner p { margin: 0; font-size: 14px; flex: 1; }
+.cookie-banner a { color: #93c5fd; }
+.todo-inline { background: var(--danger-light); color: #7f1d1d; padding: 0 6px; border-radius: 4px; font-weight: 700; }
+
+/* ─── Consent status ─── */
+.consent-ok { color: var(--success); font-weight: 700; }
+.consent-missing { color: var(--danger); font-weight: 700; }
+.check-row { display: flex; gap: 10px; align-items: flex-start; }
+.check-row input { margin-top: 5px; }

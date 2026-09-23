@@ -21,7 +21,7 @@ async function renderStudents() {
     <div class="card">
       <div class="card-body" style="padding-bottom:0">
         <div class="search-bar">
-          <input class="search-input" id="studentSearch" placeholder="🔍 بحث بالاسم أو رقم الهوية..." oninput="filterStudents()" />
+          <input class="search-input" id="studentSearch" placeholder="🔍 بحث بالاسم أو رقم الطالب..." oninput="filterStudents()" />
           <select class="form-control" style="width:160px" id="gradeFilter" onchange="filterStudents()">
             <option value="">كل الصفوف</option>
             ${gradeOptions}
@@ -45,6 +45,7 @@ async function renderStudents() {
               <th>الهاتف</th>
               <th>القسط السنوي</th>
               <th>الحالة</th>
+              <th>موافقة ولي الأمر</th>
               <th>إجراءات</th>
             </tr>
           </thead>
@@ -76,6 +77,7 @@ function renderStudentRows(students) {
       <td dir="ltr" style="text-align:right">${esc(s.parent_phone || '-')}</td>
       <td>${s.total_yearly_tuition} د.أ</td>
       <td>${statusBadge(s.status)}</td>
+      <td>${s.guardian_consent_at ? '<span class="consent-ok">✓ موثّقة</span>' : '<span class="consent-missing">غير مسجّلة</span>'}</td>
       <td>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-outline btn-sm" onclick="viewStudentProfile('${s.student_id}')">👁 ملف</button>
@@ -152,8 +154,18 @@ async function openAddStudentModal() {
       </div>
       <div class="form-group form-full">
         <label class="form-label">ملاحظات</label>
-        <input class="form-control" id="m_notes" placeholder="أي ملاحظات إضافية...">
+        <input class="form-control" id="m_notes" placeholder="ملاحظات إدارية فقط — لا تُدخل معلومات صحية">
       </div>
+      <fieldset class="form-group form-full" style="border:1px solid var(--border);border-radius:8px;padding:12px">
+        <legend class="form-label" style="padding:0 6px">موافقة ولي الأمر (مطلوبة قانوناً لبيانات القاصرين)</legend>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label" for="m_consent_by">اسم ولي الأمر الذي وقّع النموذج</label>
+            <input class="form-control" id="m_consent_by" maxlength="200"></div>
+          <div class="form-group"><label class="form-label" for="m_consent_at">تاريخ التوقيع</label>
+            <input class="form-control" id="m_consent_at" type="date"></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">اطبع <a href="/legal/parent-consent.html" target="_blank" rel="noopener">نموذج الموافقة</a> واحتفظ بالنسخة الموقّعة في ملف الطالب.</p>
+      </fieldset>
     </div>
     <hr class="divider">
     <button class="btn btn-primary btn-full" onclick="submitAddStudent()">حفظ وتوليد رقم الطالب</button>
@@ -179,7 +191,9 @@ async function submitAddStudent() {
     gender: document.getElementById('m_gender').value,
     total_yearly_tuition: parseFloat(document.getElementById('m_tuition').value) || 500,
     address: document.getElementById('m_address').value.trim(),
-    notes: document.getElementById('m_notes').value.trim()
+    notes: document.getElementById('m_notes').value.trim(),
+    guardian_consent_by: document.getElementById('m_consent_by').value.trim(),
+    guardian_consent_at: document.getElementById('m_consent_at').value
   };
   if (!validateStudentBody(body)) return;
   const res = await once('addStudent', () => API.post('/students', body));
@@ -233,8 +247,18 @@ async function openEditStudentModal(id) {
       </div>
       <div class="form-group form-full">
         <label class="form-label">ملاحظات</label>
-        <input class="form-control" id="e_notes" value="${esc(s.notes || '')}">
+        <input class="form-control" id="e_notes" value="${esc(s.notes || '')}" placeholder="ملاحظات إدارية فقط — لا تُدخل معلومات صحية">
       </div>
+      <fieldset class="form-group form-full" style="border:1px solid var(--border);border-radius:8px;padding:12px">
+        <legend class="form-label" style="padding:0 6px">موافقة ولي الأمر (مطلوبة قانوناً لبيانات القاصرين)</legend>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label" for="e_consent_by" value="${esc(s.guardian_consent_by || '')}">اسم ولي الأمر الذي وقّع النموذج</label>
+            <input class="form-control" id="e_consent_by" value="${esc(s.guardian_consent_by || '')}" maxlength="200"></div>
+          <div class="form-group"><label class="form-label" for="e_consent_at">تاريخ التوقيع</label>
+            <input class="form-control" id="e_consent_at" type="date" value="${esc(s.guardian_consent_at || '')}"></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">اطبع <a href="/legal/parent-consent.html" target="_blank" rel="noopener">نموذج الموافقة</a> واحتفظ بالنسخة الموقّعة في ملف الطالب.</p>
+      </fieldset>
     </div>
     <hr class="divider">
     <button class="btn btn-primary btn-full" onclick="submitEditStudent('${id}')">حفظ التعديلات</button>
@@ -251,7 +275,9 @@ async function submitEditStudent(id) {
     total_yearly_tuition: parseFloat(document.getElementById('e_tuition').value),
     status: document.getElementById('e_status').value,
     address: document.getElementById('e_address').value.trim(),
-    notes: document.getElementById('e_notes').value.trim()
+    notes: document.getElementById('e_notes').value.trim(),
+    guardian_consent_by: document.getElementById('e_consent_by').value.trim(),
+    guardian_consent_at: document.getElementById('e_consent_at').value
   };
   if (!validateStudentBody(body)) return;
   const res = await once('editStudent', () => API.put(`/students/${id}`, body));
@@ -328,11 +354,21 @@ async function viewStudentProfile(id) {
         </tbody>
       </table>
     </div>
+    <p style="margin-top:12px;font-size:14px">موافقة ولي الأمر: ${s.guardian_consent_at
+      ? `<span class="consent-ok">✓ ${esc(s.guardian_consent_by || '')} — ${esc(s.guardian_consent_at)}</span>`
+      : '<span class="consent-missing">غير مسجّلة — يجب الحصول عليها وتسجيلها</span>'}</p>
     <hr class="divider">
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-primary" style="flex:1" onclick="closeModal();navigateTo('finance');setTimeout(()=>openPaymentModal('${s.student_id}'),300)">💰 تسجيل دفعة</button>
       <button class="btn btn-outline" style="flex:1" onclick="closeModal();navigateTo('grades');setTimeout(()=>filterGradesByStudent('${s.student_id}'),300)">📝 الدرجات</button>
     </div>
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-weight:700">طلبات ولي الأمر بشأن البيانات</summary>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-outline" onclick="exportStudentData('${s.student_id}')">⬇️ تصدير بيانات الطالب (حق الاطلاع)</button>
+        <button class="btn btn-danger" onclick="openEraseStudent('${s.student_id}')">حذف نهائي (طلب ولي الأمر)</button>
+      </div>
+    </details>
   `);
 }
 
@@ -351,4 +387,45 @@ function handleStudentsImport(event) {
     const box = document.getElementById('studentsImportResult').innerHTML;
     renderStudents().then(() => { const el = document.getElementById('studentsImportResult'); if (el) el.innerHTML = box; });
   });
+}
+
+// ─── Data subject requests (PDPL Art. 4): export and permanent erasure ───
+async function exportStudentData(id) {
+  const who = prompt('اسم مقدّم الطلب (ولي الأمر) — اختياري:');
+  if (who === null) return;
+  await once('export-' + id, () => downloadFile(
+    `/students/${encodeURIComponent(id)}/export?requested_by=${encodeURIComponent(who.trim())}`,
+    `student-${id}-data-${todayLocal()}.json`));
+}
+
+function openEraseStudent(id) {
+  openModal('حذف نهائي لبيانات الطالب', `
+    <div class="alert alert-red" role="alert">سيُحذف الطالب رقم <strong>${esc(id)}</strong> مع <strong>جميع</strong> دفعاته ودرجاته وحضوره نهائياً ولا يمكن التراجع.
+    استخدم هذا فقط عند طلب ولي الأمر حذف البيانات. تأكّد أولاً أن المدرسة غير ملزمة قانونياً بالاحتفاظ بالسجلات المالية.</div>
+    <div class="form-group" style="margin-bottom:12px"><label class="form-label" for="er_by">اسم مقدّم الطلب *</label>
+      <input class="form-control" id="er_by" maxlength="200"></div>
+    <div class="form-group" style="margin-bottom:12px"><label class="form-label" for="er_note">ملاحظة (مثلاً: طلب خطي بتاريخ ...)</label>
+      <input class="form-control" id="er_note" maxlength="500"></div>
+    <div class="form-group" style="margin-bottom:12px"><label class="form-label" for="er_confirm">للتأكيد اكتب رقم الطالب: ${esc(id)}</label>
+      <input class="form-control" id="er_confirm" dir="ltr" autocomplete="off"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-danger" onclick="submitEraseStudent('${id}')">حذف نهائي</button>
+      <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+    </div>`);
+}
+
+async function submitEraseStudent(id) {
+  const body = {
+    requested_by: document.getElementById('er_by').value.trim(),
+    note: document.getElementById('er_note').value.trim(),
+    confirm: document.getElementById('er_confirm').value.trim()
+  };
+  if (!body.requested_by) return showToast('اكتب اسم مقدّم الطلب', 'error');
+  if (body.confirm !== id) return showToast('رقم الطالب للتأكيد غير مطابق', 'error');
+  const res = await once('erase-' + id, () => API.post(`/students/${encodeURIComponent(id)}/erase`, body));
+  if (res && res.success) {
+    closeModal();
+    showToast('تم حذف بيانات الطالب نهائياً وتسجيل الطلب', 'success');
+    renderStudents();
+  }
 }

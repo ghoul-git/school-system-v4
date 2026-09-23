@@ -90,7 +90,7 @@ async function loadAttendanceForDate(date) {
                       <td><strong>${esc(s.full_name)}</strong></td>
                       <td>${esc(s.grade)}</td>
                       <td>
-                        <select class="form-control att-select" style="width:140px" data-student="${s.student_id}" data-date="${date}">
+                        <select class="form-control att-select" style="width:140px" data-student="${s.student_id}" data-date="${date}" aria-label="حضور ${esc(s.full_name)}">
                           <option value="present" ${status==='present'?'selected':''}>✅ حاضر</option>
                           <option value="absent" ${status==='absent'?'selected':''}>❌ غائب</option>
                           <option value="late" ${status==='late'?'selected':''}>⏰ متأخر</option>
