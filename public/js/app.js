@@ -23,7 +23,6 @@ const pages = {
   students: { title: 'الطلاب', render: safeRender(renderStudents), perm: 'students.view' },
   finance: { title: 'المالية', render: safeRender(renderFinance), perm: 'finance' },
   grades: { title: 'الدرجات', render: safeRender(renderGrades), perm: 'academics' },
-  attendance: { title: 'الحضور والغياب', render: safeRender(renderAttendance), perm: 'academics' },
   reports: { title: 'التقارير', render: safeRender(renderReports), perm: 'finance' },
   staff: { title: 'الموظفون والصلاحيات', render: safeRender(renderStaff), perm: 'staff' },
   activity: { title: 'سجل النشاط', render: safeRender(renderActivity), perm: 'audit' },

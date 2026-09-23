@@ -39,7 +39,7 @@ async function renderStaff() {
             <tbody>
               <tr><td>الطلاب</td><td>كامل</td><td>عرض فقط</td><td>إضافة وتعديل</td></tr>
               <tr><td>المالية والتقارير</td><td>كامل</td><td>عرض وتسجيل دفعات</td><td>—</td></tr>
-              <tr><td>الدرجات والحضور</td><td>كامل</td><td>—</td><td>كامل</td></tr>
+              <tr><td>الدرجات</td><td>كامل</td><td>—</td><td>كامل</td></tr>
               <tr><td>الحذف وطلبات أولياء الأمور</td><td>✓</td><td>—</td><td>—</td></tr>
               <tr><td>الإعدادات، الموظفون، سجل النشاط، النسخ الاحتياطي</td><td>✓</td><td>—</td><td>—</td></tr>
             </tbody>

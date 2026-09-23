@@ -103,7 +103,6 @@ async function renderDashboard() {
       <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;">
         <button class="btn btn-primary" data-perm="students.edit" onclick="navigateTo('students'); setTimeout(openAddStudentModal, 300)">+ تسجيل طالب جديد</button>
         <button class="btn btn-success" data-perm="finance" onclick="navigateTo('finance')">💰 تسجيل دفعة</button>
-        <button class="btn btn-outline" data-perm="academics" onclick="navigateTo('attendance')">📅 تسجيل الحضور اليوم</button>
         <button class="btn btn-outline" data-perm="academics" onclick="navigateTo('grades')">📝 إدخال الدرجات</button>
         <button class="btn btn-outline" data-perm="finance" onclick="navigateTo('reports')">📋 طباعة تقرير</button>
       </div>
