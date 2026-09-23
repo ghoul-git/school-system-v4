@@ -12,6 +12,10 @@ const SUPABASE_URL = process.env.SCHOOL_SUPABASE_URL || 'https://equkqmyeleoixnr
 const SUPABASE_KEY = process.env.SCHOOL_SUPABASE_KEY || 'sb_publishable_O5NxGkMNvgDThJlWpWWHow_NhIZ_Eu3';
 
 const app = express();
+// Wrap async handlers so errors reach the error middleware.
+const h = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+// Unwrap a Supabase result or throw.
+function ok({ data, error }) { if (error) throw error; return data; }
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -20,22 +24,74 @@ app.get('/api/config', (req, res) => {
   res.json({ supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY });
 });
 
+const dbClient = headers => createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { headers }, auth: { persistSession: false, autoRefreshToken: false }
+});
+
+// Public: uptime monitors (e.g. UptimeRobot) poll this. 200 = healthy, 503 = database down or many recent errors.
+app.get('/api/health', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const { data, error } = await dbClient({}).rpc('health_check');
+    if (error) throw error;
+    res.status(data?.ok ? 200 : 503).json({ status: data?.ok ? 'ok' : 'degraded' });
+  } catch {
+    res.status(503).json({ status: 'down' });
+  }
+});
+
+// Public but secret-protected: the school's Google Drive backup script calls this daily
+// with the long token the owner created in Settings. Tokens are stored hashed in the database.
+app.get('/api/backup/auto', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const token = String(req.headers['x-backup-token'] || '');
+  if (!/^[0-9a-f]{64}$/.test(token)) return res.status(401).json({ error: 'invalid token' });
+  const { data, error } = await dbClient({}).rpc('backup_export', { p_token: token });
+  if (error) return res.status(error.code === '42501' ? 401 : 500).json({ error: error.code === '42501' ? 'invalid token' : 'backup failed' });
+  res.json({ school_date: today(), tables: data });
+});
+
 // Everything else under /api requires a logged-in user.
 app.use('/api', (req, res, next) => {
   const auth = req.headers.authorization || '';
   if (!auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-  req.db = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    global: { headers: { Authorization: auth } },
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+  req.db = dbClient({ Authorization: auth });
   next();
 });
 
+// ─── Roles ───────────────────────────────────────────────────────────────────
+// owner = principal/owner (everything), accountant = money, secretary = students & academics.
+// The database enforces the same rules (Row Level Security); this layer gives clear messages.
+const ALL = ['owner', 'accountant', 'secretary'];
+const RULES = [
+  // [method regex, path regex, roles]  — first match wins; anything unmatched is owner-only.
+  [/GET/, /^\/me$/, null],                    // null = any signed-in user, even before joining
+  [/POST/, /^\/staff\/redeem$/, null],
+  [/POST/, /^\/events$/, null],
+  [/.*/, /^\/terms\//, ALL],
+  [/GET/, /^\/settings$/, ALL],
+  [/GET/, /^\/dashboard$/, ALL],
+  [/GET/, /^\/students(\/[^/]+)?$/, ALL],
+  [/POST|PUT/, /^\/students(\/import|\/[^/]+)?$/, ['owner', 'secretary']],
+  [/GET|POST/, /^\/payments$/, ['owner', 'accountant']],
+  [/GET/, /^\/finance\//, ['owner', 'accountant']],
+  [/.*/, /^\/(grades|subjects|attendance)(\/|$)/, ['owner', 'secretary']],
+];
+async function getRole(req) {
+  if (req.role === undefined) req.role = ok(await req.db.rpc('my_role')) || null;
+  return req.role;
+}
+app.use('/api', h(async (req, res, next) => {
+  const rule = RULES.find(([m, p]) => m.test(req.method) && p.test(req.path));
+  const allowed = rule ? rule[2] : ['owner'];
+  if (allowed === null) return next();
+  const role = await getRole(req);
+  if (!role) return res.status(403).json({ error: 'حسابك غير مرتبط بالمدرسة بعد', code: 'NO_ROLE' });
+  if (!allowed.includes(role)) return res.status(403).json({ error: 'ليس لديك صلاحية لهذا الإجراء', code: 'FORBIDDEN' });
+  next();
+}));
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-// Wrap async handlers so errors reach the error middleware.
-const h = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-// Unwrap a Supabase result or throw.
-function ok({ data, error }) { if (error) throw error; return data; }
 // PostgREST returns at most 1000 rows per request; page through larger tables.
 async function fetchAll(build) {
   const size = 1000; let from = 0; const out = [];
@@ -142,6 +198,99 @@ async function studentMap(db, ids) {
   return map;
 }
 
+// ─── ACCOUNT & STAFF ─────────────────────────────────────────
+app.get('/api/me', h(async (req, res) => {
+  let email = null;
+  try { email = JSON.parse(Buffer.from(req.headers.authorization.slice(7).split('.')[1], 'base64url').toString()).email ?? null; } catch {}
+  res.json({ email, role: await getRole(req) });
+}));
+
+// A new staff member enters the 8-digit PIN the owner gave them.
+app.post('/api/staff/redeem', h(async (req, res) => {
+  const pin = String(req.body?.pin ?? '').replace(/\s/g, '');
+  if (!/^\d{8}$/.test(pin)) throw new ValidationError('الرمز يتكون من 8 أرقام');
+  const role = ok(await req.db.rpc('redeem_invite', { p_pin: pin }));
+  if (!role) return res.status(400).json({ error: 'الرمز غير صحيح أو منتهي الصلاحية' });
+  res.json({ success: true, role });
+}));
+
+app.get('/api/staff', h(async (req, res) => {
+  const [staff, invites] = await Promise.all([
+    req.db.rpc('staff_list').then(ok),
+    req.db.from('staff_invites').select('id, role, note, created_by, created_at, expires_at')
+      .is('used_at', null).eq('revoked', false).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).then(ok)
+  ]);
+  res.json({ staff, invites });
+}));
+
+const STAFF_ROLES = new Set(['owner', 'accountant', 'secretary']);
+app.post('/api/staff/invites', h(async (req, res) => {
+  const role = String(req.body?.role ?? '');
+  if (!STAFF_ROLES.has(role)) throw new ValidationError('اختر الدور');
+  const note = safeStr(req.body?.note, 'اسم الموظف', { maxLen: 100 }) || null;
+  res.json(ok(await req.db.rpc('create_invite', { p_role: role, p_note: note })));
+}));
+
+app.delete('/api/staff/invites/:id', h(async (req, res) => {
+  ok(await req.db.rpc('revoke_invite', { p_id: safeNum(req.params.id, 'الرقم', { required: true, min: 1 }) }));
+  res.json({ success: true });
+}));
+
+app.put('/api/staff/:email', h(async (req, res) => {
+  const role = String(req.body?.role ?? '');
+  if (!STAFF_ROLES.has(role)) throw new ValidationError('اختر الدور');
+  ok(await req.db.rpc('set_staff', { p_email: req.params.email, p_role: role, p_active: req.body?.active !== false }));
+  res.json({ success: true });
+}));
+
+app.post('/api/staff/:email/reset-2fa', h(async (req, res) => {
+  ok(await req.db.rpc('reset_staff_mfa', { p_email: req.params.email }));
+  res.json({ success: true });
+}));
+
+// ─── ACTIVITY LOG ────────────────────────────────────────────
+const EVENT_ACTIONS = new Set(['login', 'logout', 'view_student', 'print_report', 'mfa_enrolled']);
+app.post('/api/events', h(async (req, res) => {
+  const action = String(req.body?.action ?? '');
+  if (!EVENT_ACTIONS.has(action)) throw new ValidationError('حدث غير معروف');
+  const sid = safeStr(req.body?.student_id, 'الطالب', { maxLen: 50 }) || null;
+  const detail = req.body?.detail && typeof req.body.detail === 'object' && !Array.isArray(req.body.detail) ? req.body.detail : null;
+  ok(await req.db.rpc('log_event', { p_action: action, p_student_id: sid, p_detail: detail }));
+  res.json({ success: true });
+}));
+
+app.get('/api/audit', h(async (req, res) => {
+  const limit = safeNum(req.query.limit, 'الحد', { min: 1, max: 500 }) ?? 100;
+  const offset = safeNum(req.query.offset, 'البداية', { min: 0 }) ?? 0;
+  let q = req.db.from('audit_log').select('id, at, user_email, role, action, table_name, row_key, student_id, old_data, new_data', { count: 'exact' });
+  const from = safeDate(req.query.from, 'من تاريخ'), to = safeDate(req.query.to, 'إلى تاريخ');
+  if (from) q = q.gte('at', `${from}T00:00:00+03:00`);
+  if (to) q = q.lt('at', new Date(new Date(`${to}T00:00:00+03:00`).getTime() + 86400000).toISOString());
+  if (req.query.user) q = q.eq('user_email', safeStr(req.query.user, 'المستخدم', { maxLen: 200 }));
+  if (req.query.student_id) q = q.eq('student_id', safeStr(req.query.student_id, 'الطالب', { maxLen: 50 }));
+  if (req.query.table) q = q.eq('table_name', safeStr(req.query.table, 'الجدول', { maxLen: 50 }));
+  const { data, error, count } = await q.order('at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1);
+  if (error) throw error;
+  res.json({ rows: data, total: count });
+}));
+
+app.get('/api/errors', h(async (req, res) => {
+  res.json(ok(await req.db.from('error_log').select('*').order('at', { ascending: false }).limit(100)));
+}));
+
+// ─── AUTOMATIC BACKUP TOKEN (for the Google Drive script) ────
+app.get('/api/backup/token', h(async (req, res) => {
+  const rows = ok(await req.db.from('backup_tokens').select('created_at, created_by, last_used_at').eq('revoked', false).limit(1));
+  res.json({ active: rows.length > 0, ...(rows[0] || {}) });
+}));
+app.post('/api/backup/token', h(async (req, res) => {
+  res.json({ token: ok(await req.db.rpc('create_backup_token')) });
+}));
+app.delete('/api/backup/token', h(async (req, res) => {
+  ok(await req.db.rpc('revoke_backup_tokens'));
+  res.json({ success: true });
+}));
+
 // ─── SETTINGS ───────────────────────────────────────────────
 app.get('/api/settings', h(async (req, res) => {
   const rows = ok(await req.db.from('settings').select('key, value'));
@@ -215,7 +364,8 @@ app.put('/api/students/:id', h(async (req, res) => {
 }));
 
 app.delete('/api/students/:id', h(async (req, res) => {
-  ok(await req.db.from('students').delete().eq('student_id', req.params.id));
+  const gone = ok(await req.db.from('students').delete().eq('student_id', req.params.id).select('id'));
+  if (!gone.length) return res.status(404).json({ error: 'الطالب غير موجود' });
   res.json({ success: true });
 }));
 
@@ -281,6 +431,7 @@ app.get('/api/students/:id/export', h(async (req, res) => {
     request_type: 'export', student_id: id,
     requested_by: safeStr(req.query.requested_by, 'مقدّم الطلب', { maxLen: 200 }) || null
   }));
+  ok(await req.db.rpc('log_event', { p_action: 'export_student', p_student_id: id, p_detail: null }));
   res.setHeader('Content-Disposition', `attachment; filename="student-${id}-data-${today()}.json"`);
   res.json({ exported_at: new Date().toISOString(), student, payments, grades, attendance });
 }));
@@ -339,7 +490,8 @@ app.post('/api/payments', h(async (req, res) => {
 
 app.delete('/api/payments/:id', h(async (req, res) => {
   const id = safeNum(req.params.id, 'رقم العملية', { required: true, min: 1 });
-  ok(await req.db.from('payments').delete().eq('id', id));
+  const gone = ok(await req.db.from('payments').delete().eq('id', id).select('id'));
+  if (!gone.length) return res.status(404).json({ error: 'الدفعة غير موجودة' });
   res.json({ success: true });
 }));
 
@@ -502,6 +654,7 @@ app.get('/api/backup', h(async (req, res) => {
   const data = {};
   for (const t of tables) data[t] = await fetchAll(() => req.db.from(t).select('*').order(t === 'settings' ? 'key' : 'id'));
   const stamp = today();
+  ok(await req.db.rpc('log_event', { p_action: 'backup_download', p_student_id: null, p_detail: null }));
   res.setHeader('Content-Disposition', `attachment; filename="school-backup-${stamp}.json"`);
   res.json({ exported_at: new Date().toISOString(), school_date: stamp, tables: data });
 }));
@@ -510,7 +663,7 @@ app.get('/api/backup', h(async (req, res) => {
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // Errors → clear status codes and Arabic messages.
-app.use((err, req, res, next) => {
+app.use(async (err, req, res, next) => {
   if (err instanceof ValidationError) return res.status(400).json({ error: err.message });
   if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'بيانات غير صالحة' });
   const msg = err?.message || String(err);
@@ -523,10 +676,18 @@ app.use((err, req, res, next) => {
       : 'الطالب أو المادة غير موجود' });
   }
   if (code === 'P0002') return res.status(404).json({ error: 'الطالب غير موجود' });
-  if (code === '23505') return res.status(409).json({ error: 'السجل موجود مسبقاً' });
+  if (code === '23505') return res.status(409).json({ error: /already a staff/.test(msg) ? 'حسابك مرتبط بالمدرسة مسبقاً' : 'السجل موجود مسبقاً' });
   if (code === '23514' || code === '22P02') return res.status(400).json({ error: 'قيمة غير صالحة: ' + msg });
+  if (code === '42501') return res.status(403).json({ error: 'ليس لديك صلاحية لهذا الإجراء', code: 'FORBIDDEN' });
+  if (code === '22023' && /own account/.test(msg)) return res.status(400).json({ error: 'لا يمكنك تغيير حسابك أنت. اطلب ذلك من مالك آخر.' });
+  if (code === 'P0001' && /too many attempts/.test(msg)) return res.status(429).json({ error: 'محاولات خاطئة كثيرة. انتظر 15 دقيقة ثم حاول مجدداً.' });
   console.error(err);
-  res.status(500).json({ error: msg });
+  // Record the failure for the owner's System page (no personal data: route + short message only).
+  if (req.db) {
+    const log = req.db.rpc('log_error', { p_method: req.method, p_route: req.path, p_status: 500, p_code: code || null, p_message: msg }).then(() => {}, () => {});
+    await Promise.race([log, new Promise(r => setTimeout(r, 1500))]);
+  }
+  res.status(500).json({ error: 'حدث خطأ في الخادم. تم تسجيله وسنراجعه.' });
 });
 
 module.exports = app;

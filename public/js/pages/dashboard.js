@@ -11,21 +11,21 @@ async function renderDashboard() {
           <div class="stat-label">إجمالي الطلاب النشطين</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" data-perm="finance">
         <div class="stat-icon green">💵</div>
         <div class="stat-info">
           <div class="stat-value">${data.totalRevenue.toFixed(0)} <small style="font-size:14px;font-weight:400">د.أ</small></div>
           <div class="stat-label">إجمالي الإيرادات المحصلة</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" data-perm="finance">
         <div class="stat-icon yellow">📅</div>
         <div class="stat-info">
           <div class="stat-value">${data.monthRevenue.toFixed(0)} <small style="font-size:14px;font-weight:400">د.أ</small></div>
           <div class="stat-label">إيرادات هذا الشهر</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" data-perm="finance">
         <div class="stat-icon red">⚠️</div>
         <div class="stat-info">
           <div class="stat-value">${data.debtors}</div>
@@ -34,14 +34,14 @@ async function renderDashboard() {
       </div>
     </div>
 
-    ${data.missingConsent ? `
+    ${data.missingConsent && can('students.edit') ? `
     <div class="alert alert-yellow" role="status" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <span>⚠️ ${data.missingConsent} طالب بدون موافقة ولي أمر مسجّلة. القانون يشترط موافقة موثّقة لبيانات القاصرين.</span>
       <a class="btn btn-outline btn-sm" href="/legal/parent-consent.html" target="_blank" rel="noopener">نموذج الموافقة</a>
     </div>` : ''}
 
     <div class="grid-2">
-      <div class="card">
+      <div class="card" data-perm="finance">
         <div class="card-header">
           <span class="card-title">آخر المدفوعات</span>
           <button class="btn btn-outline btn-sm" onclick="navigateTo('finance')">عرض الكل</button>
@@ -101,11 +101,11 @@ async function renderDashboard() {
         <span class="card-title">وصول سريع</span>
       </div>
       <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="navigateTo('students'); setTimeout(openAddStudentModal, 300)">+ تسجيل طالب جديد</button>
-        <button class="btn btn-success" onclick="navigateTo('finance')">💰 تسجيل دفعة</button>
-        <button class="btn btn-outline" onclick="navigateTo('attendance')">📅 تسجيل الحضور اليوم</button>
-        <button class="btn btn-outline" onclick="navigateTo('grades')">📝 إدخال الدرجات</button>
-        <button class="btn btn-outline" onclick="navigateTo('reports')">📋 طباعة تقرير</button>
+        <button class="btn btn-primary" data-perm="students.edit" onclick="navigateTo('students'); setTimeout(openAddStudentModal, 300)">+ تسجيل طالب جديد</button>
+        <button class="btn btn-success" data-perm="finance" onclick="navigateTo('finance')">💰 تسجيل دفعة</button>
+        <button class="btn btn-outline" data-perm="academics" onclick="navigateTo('attendance')">📅 تسجيل الحضور اليوم</button>
+        <button class="btn btn-outline" data-perm="academics" onclick="navigateTo('grades')">📝 إدخال الدرجات</button>
+        <button class="btn btn-outline" data-perm="finance" onclick="navigateTo('reports')">📋 طباعة تقرير</button>
       </div>
     </div>
   `;

@@ -12,16 +12,34 @@
   <!-- Login -->
   <div class="login-screen" id="loginScreen">
     <main class="login-box">
-      <form onsubmit="handleLogin(event)" aria-labelledby="loginTitle">
-        <div class="login-logo" aria-hidden="true">🏫</div>
-        <h1 class="login-title" id="loginTitle">نظام إدارة المدرسة</h1>
-        <div class="form-group"><label class="form-label" for="loginEmail">البريد الإلكتروني</label>
-          <input class="form-control" id="loginEmail" type="email" autocomplete="username" required dir="ltr"></div>
-        <div class="form-group"><label class="form-label" for="loginPassword">كلمة المرور</label>
-          <input class="form-control" id="loginPassword" type="password" autocomplete="current-password" required dir="ltr"></div>
-        <div class="login-error" id="loginError" role="alert" aria-live="assertive"></div>
-        <button class="btn btn-primary btn-full" id="loginBtn" type="submit">تسجيل الدخول</button>
-      </form>
+      <div class="login-logo" aria-hidden="true">🏫</div>
+      <h1 class="login-title" id="loginTitle">نظام إدارة المدرسة</h1>
+      <div id="authForms">
+        <div class="auth-tabs" role="tablist" aria-label="الدخول أو إنشاء حساب">
+          <button type="button" role="tab" id="tabLogin" aria-selected="true" aria-controls="loginForm" onclick="showAuthTab('login')">تسجيل الدخول</button>
+          <button type="button" role="tab" id="tabSignup" aria-selected="false" aria-controls="signupForm" onclick="showAuthTab('signup')">حساب موظف جديد</button>
+        </div>
+        <form id="loginForm" role="tabpanel" aria-labelledby="tabLogin" onsubmit="handleLogin(event)">
+          <div class="form-group"><label class="form-label" for="loginEmail">البريد الإلكتروني</label>
+            <input class="form-control" id="loginEmail" type="email" autocomplete="username" required dir="ltr"></div>
+          <div class="form-group"><label class="form-label" for="loginPassword">كلمة المرور</label>
+            <input class="form-control" id="loginPassword" type="password" autocomplete="current-password" required dir="ltr"></div>
+          <div class="login-error" id="loginError" role="alert" aria-live="assertive"></div>
+          <button class="btn btn-primary btn-full" id="loginBtn" type="submit">تسجيل الدخول</button>
+        </form>
+        <form id="signupForm" role="tabpanel" aria-labelledby="tabSignup" onsubmit="handleSignup(event)" hidden>
+          <p class="auth-step-text">للموظفين الجدد: أنشئ حسابك، فعّل التحقق بخطوتين، ثم أدخل رمز الانضمام الذي يعطيك إياه مالك المدرسة.</p>
+          <div class="form-group"><label class="form-label" for="signupEmail">البريد الإلكتروني</label>
+            <input class="form-control" id="signupEmail" type="email" autocomplete="username" required dir="ltr"></div>
+          <div class="form-group"><label class="form-label" for="signupPassword">كلمة المرور (10 أحرف على الأقل، حروف وأرقام)</label>
+            <input class="form-control" id="signupPassword" type="password" autocomplete="new-password" minlength="10" required dir="ltr"></div>
+          <div class="form-group"><label class="form-label" for="signupPassword2">تأكيد كلمة المرور</label>
+            <input class="form-control" id="signupPassword2" type="password" autocomplete="new-password" minlength="10" required dir="ltr"></div>
+          <div class="login-error" id="signupError" role="alert" aria-live="assertive"></div>
+          <button class="btn btn-primary btn-full" id="signupBtn" type="submit">إنشاء الحساب</button>
+        </form>
+      </div>
+      <div id="authStep" hidden></div>
       <nav class="legal-links" aria-label="الصفحات القانونية">
         <a href="/legal/privacy.html">الخصوصية</a>
         <a href="/legal/terms.html">شروط الخدمة</a>
@@ -47,34 +65,43 @@
         <span class="nav-icon" aria-hidden="true">📊</span>
         <span class="nav-label">لوحة التحكم</span>
       </a>
-      <a href="#" class="nav-item" data-page="students">
+      <a href="#" class="nav-item" data-page="students" data-perm="students.view">
         <span class="nav-icon" aria-hidden="true">👨‍🎓</span>
         <span class="nav-label">الطلاب</span>
       </a>
-      <a href="#" class="nav-item" data-page="finance">
+      <a href="#" class="nav-item" data-page="finance" data-perm="finance">
         <span class="nav-icon" aria-hidden="true">💰</span>
         <span class="nav-label">المالية</span>
       </a>
-      <a href="#" class="nav-item" data-page="grades">
+      <a href="#" class="nav-item" data-page="grades" data-perm="academics">
         <span class="nav-icon" aria-hidden="true">📝</span>
         <span class="nav-label">الدرجات</span>
       </a>
-      <a href="#" class="nav-item" data-page="attendance">
+      <a href="#" class="nav-item" data-page="attendance" data-perm="academics">
         <span class="nav-icon" aria-hidden="true">📅</span>
         <span class="nav-label">الحضور والغياب</span>
       </a>
-      <a href="#" class="nav-item" data-page="reports">
+      <a href="#" class="nav-item" data-page="reports" data-perm="finance">
         <span class="nav-icon" aria-hidden="true">📋</span>
         <span class="nav-label">التقارير</span>
       </a>
-      <a href="#" class="nav-item" data-page="settings">
+      <a href="#" class="nav-item" data-page="staff" data-perm="staff">
+        <span class="nav-icon" aria-hidden="true">👥</span>
+        <span class="nav-label">الموظفون والصلاحيات</span>
+      </a>
+      <a href="#" class="nav-item" data-page="activity" data-perm="audit">
+        <span class="nav-icon" aria-hidden="true">🕵️</span>
+        <span class="nav-label">سجل النشاط</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings" data-perm="settings">
         <span class="nav-icon" aria-hidden="true">⚙️</span>
         <span class="nav-label">الإعدادات</span>
       </a>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="system-badge">الاتصال مشفّر (HTTPS)</div>
+      <div class="sidebar-user" id="sidebarUser"></div>
+      <div class="system-badge">الاتصال مشفّر · تحقق بخطوتين</div>
       <button class="btn btn-outline btn-sm btn-full" style="margin-top:8px" onclick="openChangePassword()"><span aria-hidden="true">🔑</span> تغيير كلمة المرور</button>
       <button class="btn btn-outline btn-sm btn-full" style="margin-top:6px" onclick="Auth.logout()"><span aria-hidden="true">🚪</span> تسجيل الخروج</button>
       <nav class="sidebar-legal" aria-label="الصفحات القانونية">
@@ -118,12 +145,18 @@
     <button class="btn btn-primary btn-sm" onclick="ackCookies()">فهمت</button>
   </div>
 
+  <!-- Auto-logout warning -->
+  <div class="idle-warning" id="idleWarning" role="alert" hidden>
+    سيتم تسجيل خروجك تلقائياً خلال دقيقة لعدم وجود نشاط. حرّك الفأرة أو اضغط أي زر للبقاء.
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="/vendor/supabase.js"></script>
   <script src="/js/business.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/access.js"></script>
   <script src="/js/pages/dashboard.js"></script>
   <script src="/js/pages/students.js"></script>
   <script src="/js/pages/finance.js"></script>
@@ -131,6 +164,9 @@
   <script src="/js/pages/attendance.js"></script>
   <script src="/js/pages/reports.js"></script>
   <script src="/js/pages/settings.js"></script>
+  <script src="/js/pages/staff.js"></script>
+  <script src="/js/pages/activity.js"></script>
+  <script src="/js/pages/backup-drive.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

@@ -8,3 +8,7 @@ node_modules/
 # Real student data never goes into git
 data/
 _legacy/
+
+# Claude desktop app folders
+Artifacts/
+Scheduled/

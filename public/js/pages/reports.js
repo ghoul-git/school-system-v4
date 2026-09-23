@@ -9,21 +9,21 @@ async function renderReports() {
     </div>
 
     <div class="grid-3" style="margin-bottom:24px">
-      <button type="button" class="card card-button" onclick="generateDebtorsReport()">
+      <button type="button" class="card card-button" data-perm="finance" onclick="generateDebtorsReport()">
         <div class="card-body" style="text-align:center;padding:30px">
           <div style="font-size:40px;margin-bottom:12px" aria-hidden="true">💸</div>
           <div style="font-weight:700;font-size:16px">تقرير المديونيات</div>
           <div style="color:var(--text-muted);font-size:13px;margin-top:6px">قائمة الطلاب ذوي الذمم المالية</div>
         </div>
       </button>
-      <button type="button" class="card card-button" onclick="generatePaymentsReport()">
+      <button type="button" class="card card-button" data-perm="finance" onclick="generatePaymentsReport()">
         <div class="card-body" style="text-align:center;padding:30px">
           <div style="font-size:40px;margin-bottom:12px" aria-hidden="true">📊</div>
           <div style="font-weight:700;font-size:16px">تقرير الإيرادات الشهري</div>
           <div style="color:var(--text-muted);font-size:13px;margin-top:6px">ملخص المدفوعات لهذا الشهر</div>
         </div>
       </button>
-      <button type="button" class="card card-button" onclick="openStudentReportModal()">
+      <button type="button" class="card card-button" data-perm="reports.full" onclick="openStudentReportModal()">
         <div class="card-body" style="text-align:center;padding:30px">
           <div style="font-size:40px;margin-bottom:12px" aria-hidden="true">📋</div>
           <div style="font-weight:700;font-size:16px">كشف حساب طالب</div>
@@ -206,6 +206,7 @@ async function generateStudentReport(studentId) {
 }
 
 function printReport() {
+  API.request('POST', '/events', { action: 'print_report', detail: { title: document.querySelector('#reportOutput .card-title')?.textContent || '' } }, { quiet: true }).catch(() => {});
   const content = document.getElementById('printable').innerHTML;
   const win = window.open('', '_blank');
   win.document.write(`

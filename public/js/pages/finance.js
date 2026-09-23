@@ -75,7 +75,7 @@ function renderPaymentRows(payments) {
       <td>${esc(p.collected_by || '-')}</td>
       <td>${p.date_paid || '-'}</td>
       <td>
-        <button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">🗑</button>
+        <button class="btn btn-danger btn-sm" data-perm="payments.delete" onclick="deletePayment(${p.id})">🗑</button>
       </td>
     </tr>
   `).join('');

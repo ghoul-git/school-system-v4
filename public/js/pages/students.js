@@ -12,8 +12,10 @@ async function renderStudents() {
         <div class="page-subheading">${students.length} طالب مسجل في النظام</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        ${importControls('students', 'handleStudentsImport')}
-        <button class="btn btn-primary" onclick="openAddStudentModal()">+ إضافة طالب</button>
+        <span data-perm="students.edit" style="display:contents">
+          ${importControls('students', 'handleStudentsImport')}
+          <button class="btn btn-primary" onclick="openAddStudentModal()">+ إضافة طالب</button>
+        </span>
       </div>
     </div>
     <div id="studentsImportResult"></div>
@@ -81,8 +83,8 @@ function renderStudentRows(students) {
       <td>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-outline btn-sm" onclick="viewStudentProfile('${s.student_id}')">👁 ملف</button>
-          <button class="btn btn-outline btn-sm" onclick="openEditStudentModal('${s.student_id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.student_id}')">🗑</button>
+          <button class="btn btn-outline btn-sm" data-perm="students.edit" onclick="openEditStudentModal('${s.student_id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" data-perm="students.delete" onclick="deleteStudent('${s.student_id}')">🗑</button>
         </div>
       </td>
     </tr>
@@ -299,13 +301,20 @@ async function deleteStudent(id) {
 }
 
 async function viewStudentProfile(id) {
-  const data = await API.get(`/finance/summary/${id}`);
+  API.request('POST', '/events', { action: 'view_student', student_id: id }, { quiet: true }).catch(() => {});
+  const showMoney = can('finance');
+  const data = showMoney
+    ? await API.get(`/finance/summary/${id}`)
+    : { student: await API.get(`/students/${id}`), totalPaid: 0, remaining: 0, payments: [] };
+  if (!data || !data.student || data.error) return;
   const { student: s, totalPaid, remaining, payments } = data;
   const pct = Math.min(100, (totalPaid / s.total_yearly_tuition) * 100).toFixed(0);
 
   let statusAlert = '';
   if (s.status === 'transferred') {
     statusAlert = `<div class="alert alert-blue">ℹ️ هذا الطالب منتقل إلى مدرسة أخرى</div>`;
+  } else if (!showMoney) {
+    statusAlert = '';
   } else if (totalPaid >= s.total_yearly_tuition) {
     statusAlert = `<div class="alert alert-green">🎉 مستوفٍ - تم سداد كامل القسط السنوي</div>`;
   } else if (remaining > 0) {
@@ -323,7 +332,7 @@ async function viewStudentProfile(id) {
       <div class="profile-info-item"><div class="profile-info-label">القسط السنوي</div><div class="profile-info-value">${s.total_yearly_tuition} د.أ</div></div>
     </div>
 
-    <div style="margin-bottom:16px">
+    ${showMoney ? `<div style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;font-weight:700">
         <span>نسبة السداد</span><span>${pct}%</span>
       </div>
@@ -353,16 +362,16 @@ async function viewStudentProfile(id) {
           }
         </tbody>
       </table>
-    </div>
+    </div>` : ''}
     <p style="margin-top:12px;font-size:14px">موافقة ولي الأمر: ${s.guardian_consent_at
       ? `<span class="consent-ok">✓ ${esc(s.guardian_consent_by || '')} — ${esc(s.guardian_consent_at)}</span>`
       : '<span class="consent-missing">غير مسجّلة — يجب الحصول عليها وتسجيلها</span>'}</p>
     <hr class="divider">
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" style="flex:1" onclick="closeModal();navigateTo('finance');setTimeout(()=>openPaymentModal('${s.student_id}'),300)">💰 تسجيل دفعة</button>
-      <button class="btn btn-outline" style="flex:1" onclick="closeModal();navigateTo('grades');setTimeout(()=>filterGradesByStudent('${s.student_id}'),300)">📝 الدرجات</button>
+      <button class="btn btn-primary" style="flex:1" data-perm="finance" onclick="closeModal();navigateTo('finance');setTimeout(()=>openPaymentModal('${s.student_id}'),300)">💰 تسجيل دفعة</button>
+      <button class="btn btn-outline" style="flex:1" data-perm="academics" onclick="closeModal();navigateTo('grades');setTimeout(()=>filterGradesByStudent('${s.student_id}'),300)">📝 الدرجات</button>
     </div>
-    <details style="margin-top:14px">
+    <details style="margin-top:14px" data-perm="data.requests">
       <summary style="cursor:pointer;font-weight:700">طلبات ولي الأمر بشأن البيانات</summary>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
         <button class="btn btn-outline" onclick="exportStudentData('${s.student_id}')">⬇️ تصدير بيانات الطالب (حق الاطلاع)</button>

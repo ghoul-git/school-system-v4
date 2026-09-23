@@ -20,18 +20,21 @@ function safeRender(fn) {
 
 const pages = {
   dashboard: { title: 'لوحة التحكم', render: safeRender(renderDashboard) },
-  students: { title: 'الطلاب', render: safeRender(renderStudents) },
-  finance: { title: 'المالية', render: safeRender(renderFinance) },
-  grades: { title: 'الدرجات', render: safeRender(renderGrades) },
-  attendance: { title: 'الحضور والغياب', render: safeRender(renderAttendance) },
-  reports: { title: 'التقارير', render: safeRender(renderReports) },
-  settings: { title: 'الإعدادات', render: safeRender(renderSettings) }
+  students: { title: 'الطلاب', render: safeRender(renderStudents), perm: 'students.view' },
+  finance: { title: 'المالية', render: safeRender(renderFinance), perm: 'finance' },
+  grades: { title: 'الدرجات', render: safeRender(renderGrades), perm: 'academics' },
+  attendance: { title: 'الحضور والغياب', render: safeRender(renderAttendance), perm: 'academics' },
+  reports: { title: 'التقارير', render: safeRender(renderReports), perm: 'finance' },
+  staff: { title: 'الموظفون والصلاحيات', render: safeRender(renderStaff), perm: 'staff' },
+  activity: { title: 'سجل النشاط', render: safeRender(renderActivity), perm: 'audit' },
+  settings: { title: 'الإعدادات', render: safeRender(renderSettings), perm: 'settings' }
 };
 
 let currentPage = 'dashboard';
 
 function navigateTo(page) {
   if (!pages[page]) return;
+  if (pages[page].perm && !can(pages[page].perm)) page = 'dashboard';
   currentPage = page;
 
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -43,7 +46,11 @@ function navigateTo(page) {
   document.getElementById('pageTitle').textContent = pages[page].title;
   document.getElementById('pageContent').innerHTML = '<div class="loading"><div class="spinner"></div> جاري التحميل...</div>';
 
-  Promise.resolve(pages[page].render()).then(() => enhanceA11y(document.getElementById('pageContent')));
+  Promise.resolve(pages[page].render()).then(() => {
+    const el = document.getElementById('pageContent');
+    applyPerms(el);
+    enhanceA11y(el);
+  });
 }
 
 function toggleSidebar() {
@@ -81,6 +88,7 @@ async function loadSchoolName() {
 // ─── Login screen ────────────────────────────────────────────
 function showLogin(message) {
   document.body.classList.add('logged-out');
+  backToLogin();
   document.getElementById('loginError').textContent = message || '';
 }
 
@@ -91,10 +99,17 @@ async function handleLogin(e) {
   btn.disabled = true; err.textContent = '';
   try {
     await Auth.login(document.getElementById('loginEmail').value.trim(), document.getElementById('loginPassword').value);
-    document.body.classList.remove('logged-out');
-    startApp();
+  } catch (ex) {
+    btn.disabled = false;
+    err.textContent = /confirm/i.test(ex?.message || '') ? 'لم يتم تأكيد البريد الإلكتروني بعد — افتح رابط التأكيد في بريدك'
+      : /rate|too many/i.test(ex?.message || '') ? 'محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً'
+      : 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+    return;
+  }
+  try {
+    await continueAuth();
   } catch {
-    err.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+    err.textContent = 'تعذّر إكمال تسجيل الدخول. حاول مجدداً.';
   } finally {
     btn.disabled = false;
   }
@@ -103,13 +118,14 @@ async function handleLogin(e) {
 function openChangePassword() {
   openModal('تغيير كلمة المرور', `
     <div class="form-group"><label class="form-label">كلمة المرور الجديدة</label>
-      <input class="form-control" id="newPassword" type="password" minlength="8" placeholder="8 أحرف على الأقل"></div>
+      <input class="form-control" id="newPassword" type="password" minlength="10" autocomplete="new-password" placeholder="10 أحرف على الأقل، حروف وأرقام"></div>
     <button class="btn btn-primary btn-full" onclick="submitChangePassword()">حفظ</button>`);
 }
 
 async function submitChangePassword() {
   const pw = document.getElementById('newPassword').value;
-  if (pw.length < 8) return showToast('كلمة المرور يجب أن تكون 8 أحرف على الأقل', 'error');
+  const problem = passwordProblem(pw);
+  if (problem) return showToast(problem, 'error');
   try { await Auth.changePassword(pw); closeModal(); showToast('✅ تم تغيير كلمة المرور', 'success'); }
   catch (e) { showToast(e.message, 'error'); }
 }
@@ -161,10 +177,12 @@ showCookieNotice();
 
 // Init
 (async () => {
+  let msg = '';
+  try { msg = sessionStorage.getItem('logout_msg') || ''; sessionStorage.removeItem('logout_msg'); } catch {}
   try {
     const session = await Auth.init();
-    if (session) { document.body.classList.remove('logged-out'); startApp(); }
-    else showLogin();
+    if (session) await continueAuth();
+    else showLogin(msg);
   } catch {
     showLogin('تعذر الاتصال بالخادم');
   }

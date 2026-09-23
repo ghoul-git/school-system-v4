@@ -120,6 +120,12 @@ async function renderSettings() {
           تنزيل نسخة كاملة من بيانات المدرسة (الطلاب، المدفوعات، الدرجات، الحضور، الإعدادات) في ملف واحد. يُنصح بتنزيل نسخة أسبوعياً وحفظها في مكان آمن.
         </p>
         <button class="btn btn-primary" id="backupBtn" onclick="downloadBackup()">⬇️ تنزيل نسخة احتياطية</button>
+        <hr class="divider">
+        <div style="font-weight:700;margin-bottom:6px">نسخ تلقائي يومي إلى Google Drive الخاص بالمدرسة</div>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">
+          كل ليلة تُحفظ نسخة كاملة في مجلد على Google Drive الخاص بالمدير أو المالك (وليس لدى أي جهة أخرى)، وتُحذف النسخ الأقدم من 30 يوماً تلقائياً. إذا فشل النسخ يصلك بريد إلكتروني.
+        </p>
+        <div id="driveBackupStatus"><div class="loading"><div class="spinner"></div></div></div>
       </div>
     </div>
 
@@ -138,6 +144,7 @@ async function renderSettings() {
       </div>
     </div>
   `;
+  refreshDriveBackupStatus();
 }
 
 function renderGradeRows() {

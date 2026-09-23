@@ -14,10 +14,16 @@ const Auth = {
   async login(email, password) {
     const { data, error } = await this.client.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    window._freshLogin = true;
     return data.session;
   },
-  async logout() {
-    await this.client.auth.signOut();
+  async logout(message) {
+    // Record the logout (best effort, never blocks for long), then end the session.
+    if (typeof ROLE !== 'undefined' && ROLE) {
+      await Promise.race([API.request('POST', '/events', { action: 'logout' }, { quiet: true }).catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
+    }
+    await this.client.auth.signOut().catch(() => {});
+    try { if (message) sessionStorage.setItem('logout_msg', message); } catch {}
     location.reload();
   },
   async changePassword(password) {
@@ -28,7 +34,7 @@ const Auth = {
 
 // ─── API wrapper: adds the login token, handles expired sessions ─
 const API = {
-  async request(method, path, body) {
+  async request(method, path, body, { quiet = false } = {}) {
     const headers = { Authorization: `Bearer ${await Auth.token()}` };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let res;
@@ -41,7 +47,12 @@ const API = {
     if (res.status === 401) { showLogin('انتهت الجلسة، الرجاء تسجيل الدخول مجدداً'); throw new Error('Not logged in'); }
     let data;
     try { data = await res.json(); } catch { data = { error: `استجابة غير متوقعة من الخادم (${res.status})` }; }
-    if (!res.ok && data && data.error) showToast(data.error, 'error');
+    if (res.status === 403 && data?.code === 'NO_ROLE') {
+      // Removed from the school, or 2FA not completed in this session: go back through the login steps.
+      continueAuth().catch(() => showLogin());
+      throw new Error('Not logged in');
+    }
+    if (!res.ok && data && data.error && !quiet) showToast(data.error, 'error');
     return data;
   },
   get(path) { return this.request('GET', path); },
@@ -78,6 +89,7 @@ function openModal(title, bodyHtml, { locked = false } = {}) {
   document.getElementById('modalBody').innerHTML = bodyHtml;
   document.querySelector('.modal-close').hidden = locked;
   overlay.classList.add('open');
+  if (typeof applyPerms === 'function') applyPerms(overlay);
   enhanceA11y(overlay);
   const first = overlay.querySelector('#modalBody input:not([type=hidden]), #modalBody select, #modalBody textarea, #modalBody button, #modalBody a[href]');
   (first || overlay.querySelector('.modal-box')).focus?.();
