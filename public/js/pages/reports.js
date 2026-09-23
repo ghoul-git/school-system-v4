@@ -70,9 +70,9 @@ async function generateDebtorsReport() {
                 ${results.map(s => `
                   <tr>
                     <td>${s.student_id}</td>
-                    <td><strong>${s.full_name}</strong></td>
-                    <td>${s.grade}</td>
-                    <td dir="ltr">${s.parent_phone || '-'}</td>
+                    <td><strong>${esc(s.full_name)}</strong></td>
+                    <td>${esc(s.grade)}</td>
+                    <td dir="ltr">${esc(s.parent_phone || '-')}</td>
                     <td>${s.total_yearly_tuition} د.أ</td>
                     <td style="color:var(--success)">${s.totalPaid.toFixed(2)} د.أ</td>
                     <td style="color:var(--danger);font-weight:700">${s.remaining.toFixed(2)} د.أ</td>
@@ -88,7 +88,7 @@ async function generateDebtorsReport() {
 }
 
 async function generatePaymentsReport() {
-  const month = new Date().toISOString().slice(0, 7);
+  const month = todayLocal().slice(0, 7);
   const payments = await API.get(`/payments`);
   const monthPayments = payments.filter(p => p.date_paid && p.date_paid.startsWith(month));
   const total = monthPayments.reduce((s, p) => s + p.amount, 0);
@@ -115,7 +115,7 @@ async function generatePaymentsReport() {
             <div style="font-weight:700;margin-bottom:10px">توزيع حسب طريقة الدفع</div>
             ${Object.entries(byMethod).map(([method, amount]) => `
               <div style="display:flex;justify-content:space-between;padding:10px;background:var(--surface2);border-radius:6px;margin-bottom:6px">
-                <span>${method}</span>
+                <span>${esc(method)}</span>
                 <strong style="color:var(--success)">${amount.toFixed(2)} د.أ</strong>
               </div>
             `).join('')}
@@ -127,10 +127,10 @@ async function generatePaymentsReport() {
               <tbody>
                 ${monthPayments.map(p => `
                   <tr>
-                    <td>${p.full_name}</td>
+                    <td>${esc(p.full_name)}</td>
                     <td style="color:var(--success);font-weight:700">${p.amount} د.أ</td>
-                    <td>${p.payment_method}</td>
-                    <td>${p.collected_by || '-'}</td>
+                    <td>${esc(p.payment_method)}</td>
+                    <td>${esc(p.collected_by || '-')}</td>
                     <td>${p.date_paid}</td>
                   </tr>
                 `).join('')}
@@ -150,7 +150,7 @@ async function openStudentReportModal() {
       <label class="form-label">الطالب</label>
       <select class="form-control" id="rpt_student">
         <option value="">-- اختر طالب --</option>
-        ${students.map(s => `<option value="${s.student_id}">${s.full_name} (${s.student_id})</option>`).join('')}
+        ${students.map(s => `<option value="${s.student_id}">${esc(s.full_name)} (${s.student_id})</option>`).join('')}
       </select>
     </div>
     <hr class="divider">
@@ -171,17 +171,17 @@ async function generateStudentReport(studentId) {
   document.getElementById('reportOutput').innerHTML = `
     <div class="card">
       <div class="card-header">
-        <span class="card-title">كشف حساب: ${s.full_name}</span>
+        <span class="card-title">كشف حساب: ${esc(s.full_name)}</span>
         <button class="btn btn-outline btn-sm" onclick="printReport()">🖨 طباعة</button>
       </div>
       <div id="printable">
         <div class="card-body">
           <div class="profile-info-grid" style="margin-bottom:20px">
             <div class="profile-info-item"><div class="profile-info-label">رقم الطالب</div><div class="profile-info-value">${s.student_id}</div></div>
-            <div class="profile-info-item"><div class="profile-info-label">الصف</div><div class="profile-info-value">${s.grade}</div></div>
+            <div class="profile-info-item"><div class="profile-info-label">الصف</div><div class="profile-info-value">${esc(s.grade)}</div></div>
             <div class="profile-info-item"><div class="profile-info-label">الحالة</div><div class="profile-info-value">${statusBadge(s.status)}</div></div>
-            <div class="profile-info-item"><div class="profile-info-label">ولي الأمر</div><div class="profile-info-value">${s.parent_name || '-'}</div></div>
-            <div class="profile-info-item"><div class="profile-info-label">الهاتف</div><div class="profile-info-value">${s.parent_phone || '-'}</div></div>
+            <div class="profile-info-item"><div class="profile-info-label">ولي الأمر</div><div class="profile-info-value">${esc(s.parent_name || '-')}</div></div>
+            <div class="profile-info-item"><div class="profile-info-label">الهاتف</div><div class="profile-info-value">${esc(s.parent_phone || '-')}</div></div>
             <div class="profile-info-item"><div class="profile-info-label">المعدل العام</div><div class="profile-info-value" style="color:var(--primary)">${avgGrade}</div></div>
           </div>
           <div class="summary-box" style="margin-bottom:20px">
@@ -193,7 +193,7 @@ async function generateStudentReport(studentId) {
           <table>
             <thead><tr><th>التاريخ</th><th>المبلغ</th><th>الطريقة</th><th>المستلم</th></tr></thead>
             <tbody>
-              ${payments.map(p => `<tr><td>${p.date_paid}</td><td>${p.amount} د.أ</td><td>${p.payment_method}</td><td>${p.collected_by}</td></tr>`).join('')}
+              ${payments.map(p => `<tr><td>${p.date_paid}</td><td>${p.amount} د.أ</td><td>${esc(p.payment_method)}</td><td>${esc(p.collected_by)}</td></tr>`).join('')}
             </tbody>
           </table>
         </div>

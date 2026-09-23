@@ -2,7 +2,7 @@ async function renderFinance() {
   const el = document.getElementById('pageContent');
   const payments = await API.get('/payments');
   const total = payments.reduce((s, p) => s + p.amount, 0);
-  const month = new Date().toISOString().slice(0, 7);
+  const month = todayLocal().slice(0, 7);
   const monthTotal = payments.filter(p => p.date_paid && p.date_paid.startsWith(month)).reduce((s, p) => s + p.amount, 0);
 
   el.innerHTML = `
@@ -68,11 +68,11 @@ function renderPaymentRows(payments) {
   }
   return payments.map(p => `
     <tr>
-      <td><small style="color:var(--text-muted)">${p.transaction_id}</small></td>
-      <td><strong>${p.full_name}</strong></td>
+      <td><small style="color:var(--text-muted)">${esc(p.transaction_id)}</small></td>
+      <td><strong>${esc(p.full_name)}</strong></td>
       <td><span style="color:var(--success);font-weight:700;font-size:15px">${p.amount} د.أ</span></td>
-      <td>${p.payment_method || '-'}</td>
-      <td>${p.collected_by || '-'}</td>
+      <td>${esc(p.payment_method || '-')}</td>
+      <td>${esc(p.collected_by || '-')}</td>
       <td>${p.date_paid || '-'}</td>
       <td>
         <button class="btn btn-danger btn-sm" onclick="deletePayment(${p.id})">🗑</button>
@@ -95,7 +95,7 @@ function filterPayments() {
 async function openPaymentModal(prefilledId = '', prefilledName = '') {
   const students = await API.get('/students?status=active');
   const options = students.map(s =>
-    `<option value="${s.student_id}" ${s.student_id === prefilledId ? 'selected' : ''}>${s.full_name} (${s.student_id})</option>`
+    `<option value="${s.student_id}" ${s.student_id === prefilledId ? 'selected' : ''}>${esc(s.full_name)} (${s.student_id})</option>`
   ).join('');
 
   openModal('تسجيل دفعة جديدة', `
@@ -114,7 +114,7 @@ async function openPaymentModal(prefilledId = '', prefilledName = '') {
       </div>
       <div class="form-group">
         <label class="form-label">تاريخ الدفع</label>
-        <input class="form-control" id="p_date" type="date" value="${new Date().toISOString().split('T')[0]}">
+        <input class="form-control" id="p_date" type="date" value="${todayLocal()}">
       </div>
       <div class="form-group">
         <label class="form-label">طريقة الدفع</label>

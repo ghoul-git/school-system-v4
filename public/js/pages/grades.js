@@ -17,7 +17,7 @@ async function renderGrades() {
         <div class="search-bar">
           <select class="form-control" id="g_studentSelect" onchange="loadStudentGrades(this.value)">
             <option value="">-- اختر طالباً لعرض درجاته --</option>
-            ${students.map(s => `<option value="${s.student_id}">${s.full_name} — ${s.grade}</option>`).join('')}
+            ${students.map(s => `<option value="${s.student_id}">${esc(s.full_name)} — ${esc(s.grade)}</option>`).join('')}
           </select>
           <select class="form-control" style="width:160px" id="g_semesterFilter" onchange="loadStudentGrades(document.getElementById('g_studentSelect').value)">
             <option value="">كل الفصول</option>
@@ -54,6 +54,7 @@ async function loadStudentGrades(studentId) {
     API.get(`/students/${studentId}`)
   ]);
 
+  window._currentStudentGrade = student.grade;
   const subjects = await API.get(`/subjects?grade=${encodeURIComponent(student.grade)}`);
   const filtered = semFilter ? gradeData.filter(g => g.semester === semFilter) : gradeData;
 
@@ -70,10 +71,10 @@ async function loadStudentGrades(studentId) {
   el.innerHTML = `
     <div class="card" style="margin-bottom:16px">
       <div class="card-header">
-        <span class="card-title">📊 ملخص درجات: ${student.full_name} — ${student.grade}</span>
+        <span class="card-title">📊 ملخص درجات: ${esc(student.full_name)} — ${esc(student.grade)}</span>
         <div style="display:flex;gap:8px">
           <span class="badge badge-blue">المعدل العام: ${avgAll}</span>
-          <button class="btn btn-primary btn-sm" onclick="openEnterGradesModal('${studentId}', '${student.grade}')">+ إدخال درجات</button>
+          <button class="btn btn-primary btn-sm" onclick="openEnterGradesModal('${studentId}')">+ إدخال درجات</button>
         </div>
       </div>
       <div class="card-body">
@@ -83,14 +84,14 @@ async function loadStudentGrades(studentId) {
               const avg = (grades.reduce((s, g) => s + (g.score || 0), 0) / grades.length).toFixed(1);
               return `
                 <div style="margin-bottom:20px">
-                  <div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--primary)">${sem} — معدل: ${avg}</div>
+                  <div style="font-weight:700;font-size:15px;margin-bottom:10px;color:var(--primary)">${esc(sem)} — معدل: ${avg}</div>
                   <div class="table-wrapper">
                     <table>
                       <thead><tr><th>المادة</th><th>الدرجة</th><th>من</th><th>التقدير</th></tr></thead>
                       <tbody>
                         ${grades.map(g => `
                           <tr>
-                            <td><strong>${g.subject_name}</strong></td>
+                            <td><strong>${esc(g.subject_name)}</strong></td>
                             <td style="font-size:16px;font-weight:700">${g.score ?? '-'}</td>
                             <td style="color:var(--text-muted)">${g.max_score}</td>
                             <td>${gradeBadge(g.grade_letter)}</td>
@@ -109,6 +110,7 @@ async function loadStudentGrades(studentId) {
 }
 
 async function openEnterGradesModal(studentId, grade) {
+  grade = grade || window._currentStudentGrade;
   const subjects = await API.get(`/subjects?grade=${encodeURIComponent(grade)}`);
   const existing = await API.get(`/grades/${studentId}`);
   const existingMap = {};
@@ -129,7 +131,7 @@ async function openEnterGradesModal(studentId, grade) {
         <tbody>
           ${subjects.map(sub => `
             <tr>
-              <td><strong>${sub.name}</strong></td>
+              <td><strong>${esc(sub.name)}</strong></td>
               <td><input class="form-control" type="number" min="0" max="100"
                 id="score_${sub.id}" placeholder="0-100"
                 value="${existingMap[sub.id + '_' + 'الفصل الأول'] ?? ''}">

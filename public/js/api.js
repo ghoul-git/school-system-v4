@@ -43,6 +43,16 @@ const API = {
   delete(path) { return this.request('DELETE', path); }
 };
 
+// Escape text before putting it into HTML (names with ' " < & etc.)
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Today's date in Jordan time as YYYY-MM-DD (not UTC)
+function todayLocal() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Amman' });
+}
+
 function showToast(msg, type = '') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -73,7 +83,7 @@ function statusBadge(status) {
     'graduated': ['badge-blue', 'خريج']
   };
   const [cls, label] = map[status] || ['badge-gray', status];
-  return `<span class="badge ${cls}">${label}</span>`;
+  return `<span class="badge ${cls}">${esc(label)}</span>`;
 }
 
 function gradeBadge(letter) {
@@ -92,5 +102,5 @@ function attendanceBadge(status) {
     'excused': ['att-excused', 'غياب بعذر']
   };
   const [cls, label] = map[status] || ['', status];
-  return `<span class="${cls}">${label}</span>`;
+  return `<span class="${cls}">${esc(label)}</span>`;
 }

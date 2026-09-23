@@ -44,15 +44,15 @@ async function renderSettings() {
         <div class="card-body">
           <div class="form-group" style="margin-bottom:14px">
             <label class="form-label">اسم المدرسة</label>
-            <input class="form-control" id="s_school_name" value="${settings.school_name || ''}">
+            <input class="form-control" id="s_school_name" value="${esc(settings.school_name || '')}">
           </div>
           <div class="form-group" style="margin-bottom:14px">
             <label class="form-label">العام الدراسي</label>
-            <input class="form-control" id="s_academic_year" value="${settings.academic_year || '2025/2026'}">
+            <input class="form-control" id="s_academic_year" value="${esc(settings.academic_year || '2025/2026')}">
           </div>
           <div class="form-group" style="margin-bottom:14px">
             <label class="form-label">العملة</label>
-            <input class="form-control" id="s_currency" value="${settings.currency || 'JD'}">
+            <input class="form-control" id="s_currency" value="${esc(settings.currency || 'JD')}">
           </div>
           <button class="btn btn-primary btn-full" onclick="saveGeneralSettings()">💾 حفظ بيانات المدرسة</button>
         </div>
@@ -64,11 +64,11 @@ async function renderSettings() {
         <div class="card-body">
           <div class="form-group" style="margin-bottom:14px">
             <label class="form-label">الحد الأدنى للقسط الشهري (د.أ)</label>
-            <input class="form-control" id="s_min_monthly" type="number" value="${settings.min_monthly_payment || '20'}">
+            <input class="form-control" id="s_min_monthly" type="number" value="${esc(settings.min_monthly_payment || '20')}">
           </div>
           <div class="form-group" style="margin-bottom:14px">
             <label class="form-label">رسوم حجز المقعد (د.أ)</label>
-            <input class="form-control" id="s_seat_fee" type="number" value="${settings.seat_reservation_fee || '100'}">
+            <input class="form-control" id="s_seat_fee" type="number" value="${esc(settings.seat_reservation_fee || '100')}">
           </div>
           <button class="btn btn-primary btn-full" onclick="saveGeneralSettings()">💾 حفظ الإعدادات المالية</button>
         </div>
@@ -112,6 +112,17 @@ async function renderSettings() {
       </div>
     </div>
 
+    <!-- Backup -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><span class="card-title">💾 النسخ الاحتياطي</span></div>
+      <div class="card-body">
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
+          تنزيل نسخة كاملة من بيانات المدرسة (الطلاب، المدفوعات، الدرجات، الحضور، الإعدادات) في ملف واحد. يُنصح بتنزيل نسخة أسبوعياً وحفظها في مكان آمن.
+        </p>
+        <button class="btn btn-primary" id="backupBtn" onclick="downloadBackup()">⬇️ تنزيل نسخة احتياطية</button>
+      </div>
+    </div>
+
     <!-- System Info -->
     <div class="card">
       <div class="card-header"><span class="card-title">ℹ️ معلومات النظام</span></div>
@@ -144,7 +155,7 @@ function renderGradeRows() {
         </div>
       </td>
       <td>
-        <input class="form-control" id="gname_${i}" value="${g.name}"
+        <input class="form-control" id="gname_${i}" value="${esc(g.name)}"
           placeholder="مثال: الصف العاشر"
           oninput="gradesConfig[${i}].name = this.value">
       </td>
@@ -261,7 +272,7 @@ async function getGradeOptions(selectedValue = '') {
     }
   }
   return window._gradesConfig.map(g =>
-    `<option value="${g.name}" ${g.name === selectedValue ? 'selected' : ''}>${g.name}</option>`
+    `<option value="${esc(g.name)}" ${g.name === selectedValue ? 'selected' : ''}>${esc(g.name)}</option>`
   ).join('');
 }
 
@@ -270,4 +281,25 @@ function getTuitionForGrade(gradeName) {
   const config = window._gradesConfig || DEFAULT_GRADES;
   const found = config.find(g => g.name === gradeName);
   return found ? found.tuition : 500;
+}
+
+// Download a full JSON backup of all school data
+async function downloadBackup() {
+  const btn = document.getElementById('backupBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/backup', { headers: { Authorization: `Bearer ${await Auth.token()}` } });
+    if (!res.ok) throw new Error('فشل تنزيل النسخة الاحتياطية');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `school-backup-${todayLocal()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('✅ تم تنزيل النسخة الاحتياطية', 'success');
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
 }

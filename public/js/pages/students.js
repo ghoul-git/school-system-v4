@@ -66,17 +66,17 @@ function renderStudentRows(students) {
   return students.map(s => `
     <tr>
       <td><strong style="color:var(--primary)">${s.student_id}</strong></td>
-      <td><strong>${s.full_name}</strong></td>
-      <td>${s.grade} ${s.section ? '/ ' + s.section : ''}</td>
-      <td>${s.parent_name || '-'}</td>
-      <td dir="ltr" style="text-align:right">${s.parent_phone || '-'}</td>
+      <td><strong>${esc(s.full_name)}</strong></td>
+      <td>${esc(s.grade)} ${esc(s.section ? '/ ' + s.section : '')}</td>
+      <td>${esc(s.parent_name || '-')}</td>
+      <td dir="ltr" style="text-align:right">${esc(s.parent_phone || '-')}</td>
       <td>${s.total_yearly_tuition} د.أ</td>
       <td>${statusBadge(s.status)}</td>
       <td>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-outline btn-sm" onclick="viewStudentProfile('${s.student_id}')">👁 ملف</button>
           <button class="btn btn-outline btn-sm" onclick="openEditStudentModal('${s.student_id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.student_id}', '${s.full_name}')">🗑</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.student_id}')">🗑</button>
         </div>
       </td>
     </tr>
@@ -192,23 +192,23 @@ async function openEditStudentModal(id) {
     <div class="form-grid">
       <div class="form-group form-full">
         <label class="form-label">الاسم الكامل</label>
-        <input class="form-control" id="e_name" value="${s.full_name}">
+        <input class="form-control" id="e_name" value="${esc(s.full_name)}">
       </div>
       <div class="form-group">
         <label class="form-label">الصف</label>
-        <input class="form-control" id="e_grade" value="${s.grade}">
+        <input class="form-control" id="e_grade" value="${esc(s.grade)}">
       </div>
       <div class="form-group">
         <label class="form-label">الشعبة</label>
-        <input class="form-control" id="e_section" value="${s.section || ''}">
+        <input class="form-control" id="e_section" value="${esc(s.section || '')}">
       </div>
       <div class="form-group">
         <label class="form-label">اسم ولي الأمر</label>
-        <input class="form-control" id="e_parent" value="${s.parent_name || ''}">
+        <input class="form-control" id="e_parent" value="${esc(s.parent_name || '')}">
       </div>
       <div class="form-group">
         <label class="form-label">الهاتف</label>
-        <input class="form-control" id="e_phone" value="${s.parent_phone || ''}" dir="ltr">
+        <input class="form-control" id="e_phone" value="${esc(s.parent_phone || '')}" dir="ltr">
       </div>
       <div class="form-group">
         <label class="form-label">القسط السنوي</label>
@@ -225,11 +225,11 @@ async function openEditStudentModal(id) {
       </div>
       <div class="form-group">
         <label class="form-label">العنوان</label>
-        <input class="form-control" id="e_address" value="${s.address || ''}">
+        <input class="form-control" id="e_address" value="${esc(s.address || '')}">
       </div>
       <div class="form-group form-full">
         <label class="form-label">ملاحظات</label>
-        <input class="form-control" id="e_notes" value="${s.notes || ''}">
+        <input class="form-control" id="e_notes" value="${esc(s.notes || '')}">
       </div>
     </div>
     <hr class="divider">
@@ -257,7 +257,8 @@ async function submitEditStudent(id) {
   }
 }
 
-async function deleteStudent(id, name) {
+async function deleteStudent(id) {
+  const name = ((window._allStudents || []).find(s => s.student_id === id) || {}).full_name || id;
   if (!confirm(`هل أنت متأكد من حذف الطالب "${name}"؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
   const res = await API.delete(`/students/${id}`);
   if (res.success) {
@@ -284,10 +285,10 @@ async function viewStudentProfile(id) {
     ${statusAlert}
     <div class="profile-info-grid" style="margin-bottom:16px">
       <div class="profile-info-item"><div class="profile-info-label">رقم الطالب</div><div class="profile-info-value" style="color:var(--primary)">${s.student_id}</div></div>
-      <div class="profile-info-item"><div class="profile-info-label">الصف</div><div class="profile-info-value">${s.grade}</div></div>
+      <div class="profile-info-item"><div class="profile-info-label">الصف</div><div class="profile-info-value">${esc(s.grade)}</div></div>
       <div class="profile-info-item"><div class="profile-info-label">الحالة</div><div class="profile-info-value">${statusBadge(s.status)}</div></div>
-      <div class="profile-info-item"><div class="profile-info-label">ولي الأمر</div><div class="profile-info-value">${s.parent_name || '-'}</div></div>
-      <div class="profile-info-item"><div class="profile-info-label">الهاتف</div><div class="profile-info-value" dir="ltr">${s.parent_phone || '-'}</div></div>
+      <div class="profile-info-item"><div class="profile-info-label">ولي الأمر</div><div class="profile-info-value">${esc(s.parent_name || '-')}</div></div>
+      <div class="profile-info-item"><div class="profile-info-label">الهاتف</div><div class="profile-info-value" dir="ltr">${esc(s.parent_phone || '-')}</div></div>
       <div class="profile-info-item"><div class="profile-info-label">القسط السنوي</div><div class="profile-info-value">${s.total_yearly_tuition} د.أ</div></div>
     </div>
 
@@ -315,8 +316,8 @@ async function viewStudentProfile(id) {
               <tr>
                 <td>${p.date_paid || '-'}</td>
                 <td style="color:var(--success);font-weight:700">${p.amount} د.أ</td>
-                <td>${p.payment_method || '-'}</td>
-                <td>${p.collected_by || '-'}</td>
+                <td>${esc(p.payment_method || '-')}</td>
+                <td>${esc(p.collected_by || '-')}</td>
               </tr>`).join('')
           }
         </tbody>
@@ -324,7 +325,7 @@ async function viewStudentProfile(id) {
     </div>
     <hr class="divider">
     <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" style="flex:1" onclick="closeModal();navigateTo('finance');setTimeout(()=>openPaymentModal('${s.student_id}','${s.full_name}'),300)">💰 تسجيل دفعة</button>
+      <button class="btn btn-primary" style="flex:1" onclick="closeModal();navigateTo('finance');setTimeout(()=>openPaymentModal('${s.student_id}'),300)">💰 تسجيل دفعة</button>
       <button class="btn btn-outline" style="flex:1" onclick="closeModal();navigateTo('grades');setTimeout(()=>filterGradesByStudent('${s.student_id}'),300)">📝 الدرجات</button>
     </div>
   `);

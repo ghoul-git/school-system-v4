@@ -55,10 +55,10 @@ async function renderDashboard() {
                 ? `<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon">💳</div><div class="empty-state-text">لا توجد مدفوعات بعد</div></div></td></tr>`
                 : data.recentPayments.map(p => `
                   <tr>
-                    <td><strong>${p.full_name}</strong></td>
+                    <td><strong>${esc(p.full_name)}</strong></td>
                     <td><span style="color:var(--success);font-weight:700">${p.amount} د.أ</span></td>
                     <td>${p.date_paid || '-'}</td>
-                    <td>${p.payment_method || '-'}</td>
+                    <td>${esc(p.payment_method || '-')}</td>
                   </tr>
                 `).join('')
               }
@@ -77,7 +77,7 @@ async function renderDashboard() {
             : data.byGrade.map(g => `
               <div style="margin-bottom:12px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                  <span style="font-size:13px;font-weight:600">${g.grade}</span>
+                  <span style="font-size:13px;font-weight:600">${esc(g.grade)}</span>
                   <span style="font-size:13px;color:var(--text-muted)">${g.count} طالب</span>
                 </div>
                 <div style="background:var(--border);border-radius:999px;height:8px;overflow:hidden;">

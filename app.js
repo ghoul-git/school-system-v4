@@ -44,7 +44,9 @@ async function fetchAll(build) {
     from += size;
   }
 }
-const today = () => new Date().toISOString().slice(0, 10);
+// School's local date (Jordan), not UTC — otherwise 12–3 AM counts as yesterday.
+const TIMEZONE = 'Asia/Amman';
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE });
 const monthRange = m => { // 'YYYY-MM' -> ['YYYY-MM-01', first day of next month]
   const [y, mo] = m.split('-').map(Number);
   const next = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
@@ -216,6 +218,17 @@ app.post('/api/attendance', h(async (req, res) => {
 // ─── DASHBOARD ───────────────────────────────────────────────
 app.get('/api/dashboard', h(async (req, res) => {
   res.json(ok(await req.db.rpc('dashboard_stats')));
+}));
+
+// ─── BACKUP ──────────────────────────────────────────────────
+// Full export of every table as one JSON file (Settings → download backup).
+app.get('/api/backup', h(async (req, res) => {
+  const tables = ['students', 'payments', 'subjects', 'grades', 'attendance', 'academic_plan', 'settings'];
+  const data = {};
+  for (const t of tables) data[t] = await fetchAll(() => req.db.from(t).select('*').order(t === 'settings' ? 'key' : 'id'));
+  const stamp = today();
+  res.setHeader('Content-Disposition', `attachment; filename="school-backup-${stamp}.json"`);
+  res.json({ exported_at: new Date().toISOString(), school_date: stamp, tables: data });
 }));
 
 // Unknown API routes

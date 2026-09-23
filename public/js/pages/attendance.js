@@ -1,6 +1,6 @@
 async function renderAttendance() {
   const el = document.getElementById('pageContent');
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   const gradeOptions = await getGradeOptions();
 
   el.innerHTML = `
@@ -83,8 +83,8 @@ async function loadAttendanceForDate(date) {
                   return `
                     <tr>
                       <td style="color:var(--primary);font-weight:700">${s.student_id}</td>
-                      <td><strong>${s.full_name}</strong></td>
-                      <td>${s.grade}</td>
+                      <td><strong>${esc(s.full_name)}</strong></td>
+                      <td>${esc(s.grade)}</td>
                       <td>
                         <select class="form-control att-select" style="width:140px" data-student="${s.student_id}" data-date="${date}">
                           <option value="present" ${status==='present'?'selected':''}>✅ حاضر</option>
