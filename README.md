@@ -4,7 +4,7 @@ Express API + vanilla JS frontend (Arabic, RTL). Database: **Supabase** (Postgre
 
 ## Live
 - App: https://school-system-clinic-system.vercel.app
-- Supabase project: `School-Systems` (olapenhgwtnntvxxlfuh)
+- Supabase project: `School-Systems-EU` (equkqmyeleoixnrxugbr, Frankfurt)
 - Vercel project: `school-system`
 
 ## Login / staff accounts

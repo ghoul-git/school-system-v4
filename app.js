@@ -5,11 +5,10 @@ const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY environment variables');
-}
+// Both values are public by design (the browser needs them); security comes from Row Level Security.
+// Set SCHOOL_SUPABASE_URL / SCHOOL_SUPABASE_KEY to point at a different Supabase project.
+const SUPABASE_URL = process.env.SCHOOL_SUPABASE_URL || 'https://equkqmyeleoixnrxugbr.supabase.co';
+const SUPABASE_KEY = process.env.SCHOOL_SUPABASE_KEY || 'sb_publishable_O5NxGkMNvgDThJlWpWWHow_NhIZ_Eu3';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));

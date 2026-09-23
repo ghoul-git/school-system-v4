@@ -1,6 +1,6 @@
 {
   "framework": null,
   "outputDirectory": "public",
-  "regions": ["syd1"],
+  "regions": ["fra1"],
   "rewrites": [{ "source": "/api/(.*)", "destination": "/api" }]
 }
